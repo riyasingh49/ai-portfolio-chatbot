@@ -1,36 +1,36 @@
-This is a [Next.js](https://nextjs.org) project bootstrapped with [`create-next-app`](https://nextjs.org/docs/app/api-reference/cli/create-next-app).
+# Personal AI Chatbot
 
-## Getting Started
+A personal chatbot that answers questions about me — grounded only in information I've provided. Built as a personal project to explore Retrieval-Augmented Generation (RAG) with a fully free, TypeScript-based stack.
 
-First, run the development server:
+## What it does
 
-```bash
-npm run dev
-# or
-yarn dev
-# or
-pnpm dev
-# or
-bun dev
-```
+- Answers questions using my own data — nothing outside that scope
+- Declines to answer questions it has no information about, instead of guessing
+- Continues the same conversation seamlessly after login (no restart)
+- Stores full chat history per user, retrievable across sessions
+- Deployed publicly — accessible via a link, no local setup required for visitors
 
-Open [http://localhost:3000](http://localhost:3000) with your browser to see the result.
+## Tech Stack
 
-You can start editing the page by modifying `app/page.tsx`. The page auto-updates as you edit the file.
+| Layer | Tool |
+|---|---|
+| Framework | [Next.js](https://nextjs.org/) (TypeScript, App Router) |
+| Styling | Tailwind CSS |
+| Embeddings | [Transformers.js](https://huggingface.co/docs/transformers.js) (`all-MiniLM-L6-v2`, runs locally) |
+| Vector Search / RAG | [Supabase](https://supabase.com/) + `pgvector` |
+| Authentication | Supabase Auth |
+| Conversation Storage | Supabase (Postgres) |
+| LLM Inference | [Groq API](https://groq.com/) |
+| Hosting | [Vercel](https://vercel.com/) |
 
-This project uses [`next/font`](https://nextjs.org/docs/app/building-your-application/optimizing/fonts) to automatically optimize and load [Geist](https://vercel.com/font), a new font family for Vercel.
+## Architecture
 
-## Learn More
+Retrieval-Augmented Generation (RAG) — personal data is stored and retrieved semantically, then used to ground LLM-generated answers.
 
-To learn more about Next.js, take a look at the following resources:
+## Status
 
-- [Next.js Documentation](https://nextjs.org/docs) - learn about Next.js features and API.
-- [Learn Next.js](https://nextjs.org/learn) - an interactive Next.js tutorial.
+🚧 In progress — building module by module.
 
-You can check out [the Next.js GitHub repository](https://github.com/vercel/next.js) - your feedback and contributions are welcome!
+## License
 
-## Deploy on Vercel
-
-The easiest way to deploy your Next.js app is to use the [Vercel Platform](https://vercel.com/new?utm_medium=default-template&filter=next.js&utm_source=create-next-app&utm_campaign=create-next-app-readme) from the creators of Next.js.
-
-Check out our [Next.js deployment documentation](https://nextjs.org/docs/app/building-your-application/deploying) for more details.
+Personal project — not licensed for reuse.
