@@ -1,4 +1,4 @@
-# Personal AI Chatbot
+# AI Portfolio Chatbot
 
 A personal chatbot that answers questions about me — grounded only in information I've provided. Built as a personal project to explore Retrieval-Augmented Generation (RAG) with a fully free, TypeScript-based stack.
 
