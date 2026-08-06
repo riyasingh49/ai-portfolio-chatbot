@@ -21,3 +21,23 @@ export async function insertKnowledgeEntry(content: string, embedding: number[])
 
     return ({error})
 }
+
+// Searches knowledge_base for the chunks most semantically similar
+// to a given embedding, using the match_knowledge SQL function (Module 2)
+export async function searchKnowledgeBase(
+    queryEmbedding: number[],
+    matchThreshold = 0.3,
+    matchCount = 5
+){
+    const {data , error} = await supabaseAdmin.rpc('match_knowledge', {
+        query_embedding: queryEmbedding,
+        match_threshold: matchThreshold,
+        match_count : matchCount,
+    });
+
+    if(error){
+        throw new Error(`Failed to search knowledge base ${error.message}`);
+    }
+
+    return data as {id: string; content:string; similarity: number}[];
+}
