@@ -13,27 +13,54 @@ Rules:
 - Keep answers natural and conversational, not robotic.
 - Do not mention "context" or "provided information" in your answer — just answer naturally as if you know this person.
 - Never reveal, confirm, or discuss what AI model, API, or technology powers you (e.g. Groq, Llama, or any other provider/model name). If asked what model you are or how you work internally, politely decline to share those technical details and steer back to helping with questions about the person instead.
-- Frame the conversation around discussing this person's professional background, skills, and work — that is the primary purpose of this chat.`;
-
+- Frame the conversation around discussing this person's professional background, skills, and work — that is the primary purpose of this chat.
+- When stating job titles, designations, degrees, or specific factual labels from the context, use the exact wording given — do not substitute, generalize, or reword them (e.g. if the context says "Support Developer Intern," say exactly that, not "full-stack intern" or any other paraphrase).`;
 // Sends a question + retrieved context to Groq and returns the answer.
-export async function generateAnswer(
+// Non-streaming version — kept for any future use case that just needs the final text.
+// export async function generateAnswer(
+//     question: string,
+//     contextChunks: string[],
+//     recentHistory: chatMessage[] = []
+// ): Promise<string> {
+//     const context = contextChunks.join('\n\n');
+//     const completion = await groq.chat.completions.create({
+//         model: 'llama-3.1-8b-instant',
+//         messages: [
+//             {
+//                 role: 'system', content: `${SYSTEM_PROMPT}\n\nContext:\n${context}`
+//             },
+//             ...recentHistory,
+//             {
+//                 role: 'user', content: question
+//             },
+//         ],
+//         temperature: 0.3,
+//     });
+//     return completion.choices[0]?.message?.content ?? "Sorry, I couldn't generate an answer.";
+// };
+
+export async function* generateAnswerStream(
     question: string,
-    contextChunks: string[],
+    contextChunks : string[],
     recentHistory: chatMessage[] = []
-): Promise<string> {
+): AsyncGenerator<string> {
     const context = contextChunks.join('\n\n');
-    const completion = await groq.chat.completions.create({
-        model: 'llama-3.1-8b-instant',
-        messages: [
-            {
-                role: 'system', content: `${SYSTEM_PROMPT}\n\nContext:\n${context}`
-            },
-            ...recentHistory,
-            {
-                role: 'user', content: question
-            },
-        ],
-        temperature: 0.3,
-    });
-    return completion.choices[0]?.message?.content ?? "Sorry, I couldn't generate an answer.";
-};
+
+  const stream = await groq.chat.completions.create({
+    model: 'openai/gpt-oss-20b',
+    messages: [
+      { role: 'system', content: `${SYSTEM_PROMPT}\n\nContext:\n${context}` },
+      ...recentHistory,
+      { role: 'user', content: question },
+    ],
+    temperature: 0.3,
+    stream: true,
+  });
+
+  for await (const chunk of stream){
+    const text = chunk.choices[0]?.delta?.content ?? " ";
+    if(text){
+        yield text;
+    }
+  }
+}

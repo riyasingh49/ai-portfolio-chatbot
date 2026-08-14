@@ -26,8 +26,8 @@ export async function insertKnowledgeEntry(content: string, embedding: number[])
 // to a given embedding, using the match_knowledge SQL function (Module 2)
 export async function searchKnowledgeBase(
     queryEmbedding: number[],
-    matchThreshold = 0.3,
-    matchCount = 5
+    matchThreshold = 0.15,
+    matchCount = 12
 ){
     const {data , error} = await supabaseAdmin.rpc('match_knowledge', {
         query_embedding: queryEmbedding,

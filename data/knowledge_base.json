@@ -1,95 +1,95 @@
 [
-    {
-      "content": "Riya Singh is a Software Developer with hands-on experience in full-stack web development using Next.js, React.js, TypeScript, Express.js, Supabase, Redis Cache, RESTful APIs, and Server Actions. She can build a full module or feature end-to-end, from backend to frontend. She has experience with scalable frontend and backend workflows, automated testing with Playwright, AI-powered chatbot integration, and AI-assisted development."
-    },
-    {
-      "content": "Riya is based in Etawah, Uttar Pradesh, India (hometown)."
-    },
-    {
-      "content": "Riya's contact details: email riyasingh454247@gmail.com. She also has LinkedIn, GitHub, and portfolio links available."
-    },
-    {
-      "content": "Riya completed her B.Tech in Computer Science and Engineering at the Institute of Engineering and Technology, Lucknow (Nov 2022 – Jun 2026), with a CGPA of 8.76/10, Division I with Distinction."
-    },
-    {
-      "content": "Riya's technical skills include programming languages: JavaScript, TypeScript, Java, C, SQL, HTML5, CSS3, and Assembly Language."
-    },
-    {
-      "content": "For frontend development, Riya works with React.js, Next.js, Tailwind CSS, Bootstrap, GSAP, and responsive web design."
-    },
-    {
-      "content": "For backend and databases, Riya works with Express.js, RESTful APIs, Server Actions, Supabase, Redis Cache, MySQL, and JDBC."
-    },
-    {
-      "content": "For testing, Riya has experience with Playwright, API testing, end-to-end testing, regression testing, and accessibility testing."
-    },
-    {
-      "content": "Riya's tools and platforms include Git, GitHub, VS Code, MySQL Workbench, Linux, Docker, Nginx, and AI-assisted development tools."
-    },
-    {
-      "content": "Riya's core computer science foundations include Data Structures & Algorithms, Object-Oriented Programming, Software Engineering, Computer Networks, and Problem Solving."
-    },
-    {
-      "content": "Riya worked as a Support Developer Intern at Ahurasense Technology Pvt. Ltd. from February 2026 to May 2026. She worked on full-stack development using Next.js, React.js, TypeScript, Express.js, Supabase, Redis Cache, RESTful APIs, Server Actions, and Linux workflows."
-    },
-    {
-      "content": "During her internship at Ahurasense Technology, Riya contributed to an e-commerce platform by implementing dashboard modules for Coupons, Saved Addresses, Wishlist, and Help & Support features."
-    },
-    {
-      "content": "During her internship, Riya built an uploader for videos and images as part of the platform's functionality."
-    },
-    {
-      "content": "During her internship, Riya used Docker and Linux as part of an assignment, gaining basic working knowledge of containerization with Docker and Linux system workflows."
-    },
-    {
-      "content": "During her internship, Riya used Nginx to deploy the website through Linux."
-    },
-    {
-      "content": "During her internship, Riya built reusable UI components, server-side operations, database-driven flows, and scalable frontend-backend application structures. She also performed automated testing with Playwright across API behavior, frontend workflows, accessibility checks, and regression validation."
-    },
-    {
-      "content": "During her internship, Riya applied Redis caching, integrated a GPT-5.4 food-domain chatbot, and used AI-assisted development to improve debugging speed and feature iteration."
-    },
-    {
-      "content": "During her internship, Riya used AI tools including Claude, Claude Code, Codex, and ChatGPT to assist with development, debugging, and feature iteration."
-    },
-    {
-      "content": "Riya built a Personal AI Chatbot — a chatbot that answers questions about her, grounded only in information she has provided. It's a completed personal project exploring Retrieval-Augmented Generation (RAG) with a fully free, TypeScript-based stack. Tech stack: Next.js (TypeScript, App Router), Tailwind CSS, Transformers.js for local embeddings, Supabase with pgvector for vector search and storage, Supabase Auth for authentication, and the Groq API for LLM inference, hosted on Vercel."
-    },
-    {
-      "content": "Riya developed the Online Grocery Website (Feb 2025) — a responsive e-commerce grocery website with product browsing, smooth navigation, and mobile-first layouts, with a reusable frontend structure for a consistent cross-device shopping experience. Tech stack: HTML5, CSS3, JavaScript."
-    },
-    {
-      "content": "Riya engineered a Student Management System (May 2025) — a Java desktop application supporting CRUD operations for structured student record management, integrated with MySQL via JDBC for reliable database connectivity and data persistence. Tech stack: Java Swing, MySQL, JDBC."
-    },
-    {
-      "content": "Riya built R49, a React & GSAP based web project (Jan 2026) — an interactive React application with GSAP animations, reusable components, and modern UI transitions, with improved responsiveness and visual engagement using Tailwind CSS and animation-driven design. Tech stack: React.js, Tailwind CSS, GSAP."
-    },
-    {
-      "content": "Riya developed an Image Search Engine (2025) — an application with real-time API integration, backend routing, and responsive rendering, integrating the Unsplash API for keyword-based image retrieval with dynamic search interactions. Tech stack: HTML5, CSS3, JavaScript ES6+, Express.js, REST API."
-    },
-    {
-      "content": "Riya completed an AI & Data Analytics Virtual Internship (Aug–Sep 2025), where she built an Air Quality Forecasting model using Python, NumPy, scikit-learn, and Matplotlib for data preprocessing, model development, and visualization."
-    },
-    {
-      "content": "Riya completed the Deloitte Australia Data Analytics Job Simulation (Jul 2025), creating Tableau dashboards and applying Excel-based data classification to extract business insights."
-    },
-    {
-      "content": "Riya completed the Claude 101 Certification by Anthropic (Jun 2026), covering prompt structuring, AI workflows, Projects, Skills, Artifacts, and AI-assisted development use cases."
-    },
-    {
-      "content": "Riya has additional certifications: NPTEL C Programming and Assembly Language (Aug–Sep 2023), Udemy HTML, CSS and Bootstrap Course (Aug 2024), and Udemy JavaScript Master Course (Apr 2025)."
-    },
-    {
-      "content": "Riya cleared the GATE exam twice. In the 2025 attempt she scored an All India Rank of 45497 with a GATE Score of 258. In the 2026 attempt she improved significantly, achieving an All India Rank of 25584 with a GATE Score of 363."
-    },
-    {
-      "content": "Riya is an active problem solver on LeetCode and CodeChef, where she regularly practices and solves programming problems. Her profiles on both platforms are linked from her portfolio."
-    },
-    {
-      "content": "Riya was a Student Mentor at PARMARTH, the Social Education Club at IET Lucknow, from February 2023 to 2024, where she educated 200+ students from underprivileged communities."
-    },
-    {
-      "content": "Outside of work, Riya enjoys reading books, writing diary entries, and playing badminton. She likes listening to music, and has a strong interest in exploring new technologies — always eager to learn and experiment with new tools and ideas."
-    }
-  ]
+  {
+    "content": "Riya Singh is a Software Developer with hands-on experience in full-stack web development using Next.js, React.js, TypeScript, Express.js, Supabase, Redis Cache, RESTful APIs, and Server Actions. She can build a full module or feature end-to-end, from backend to frontend. She has experience with scalable frontend and backend workflows, automated testing with Playwright, AI-powered chatbot integration, and AI-assisted development."
+  },
+  {
+    "content": "Riya is based in Etawah, Uttar Pradesh, India (hometown)."
+  },
+  {
+    "content": "Riya's contact details: email riyasingh454247@gmail.com. She also has LinkedIn, GitHub, and portfolio links available."
+  },
+  {
+    "content": "Riya has graduated with a B.Tech degree in Computer Science and Engineering from the Institute of Engineering and Technology, Lucknow. She completed her degree in June 2026, having started in November 2022, with a final CGPA of 8.76/10, Division I with Distinction. She is no longer a student — she has fully completed her studies and is now working as a Software Developer."
+  },
+  {
+    "content": "Riya's technical skills include programming languages: JavaScript, TypeScript, Java, C, SQL, HTML5, CSS3, and Assembly Language."
+  },
+  {
+    "content": "For frontend development, Riya works with React.js, Next.js, Tailwind CSS, Bootstrap, GSAP, and responsive web design."
+  },
+  {
+    "content": "For backend and databases, Riya works with Express.js, RESTful APIs, Server Actions, Supabase, Redis Cache, MySQL, and JDBC."
+  },
+  {
+    "content": "For testing, Riya has experience with Playwright, API testing, end-to-end testing, regression testing, and accessibility testing."
+  },
+  {
+    "content": "Riya's tools and platforms include Git, GitHub, VS Code, MySQL Workbench, Linux, Docker, Nginx, and AI-assisted development tools."
+  },
+  {
+    "content": "Riya's core computer science foundations include Data Structures & Algorithms, Object-Oriented Programming, Software Engineering, Computer Networks, and Problem Solving."
+  },
+  {
+    "content": "Riya worked as a Support Developer Intern at Ahurasense Technology Pvt. Ltd. from February 2026 to May 2026 — this internship took place during the final months of her B.Tech degree, before she graduated in June 2026, not after. She worked on full-stack development using Next.js, React.js, TypeScript, Express.js, Supabase, Redis Cache, RESTful APIs, Server Actions, and Linux workflows."
+  },
+  {
+    "content": "During her internship at Ahurasense Technology, Riya contributed to an e-commerce platform by implementing dashboard modules for Coupons, Saved Addresses, Wishlist, and Help & Support features."
+  },
+  {
+    "content": "During her internship, Riya built an uploader for videos and images as part of the platform's functionality."
+  },
+  {
+    "content": "During her internship, Riya used Docker and Linux as part of an assignment, gaining basic working knowledge of containerization with Docker and Linux system workflows."
+  },
+  {
+    "content": "During her internship, Riya used Nginx to deploy the website through Linux."
+  },
+  {
+    "content": "During her internship, Riya built reusable UI components, server-side operations, database-driven flows, and scalable frontend-backend application structures. She also performed automated testing with Playwright across API behavior, frontend workflows, accessibility checks, and regression validation."
+  },
+  {
+    "content": "During her internship, Riya applied Redis caching, integrated a GPT-5.4 food-domain chatbot, and used AI-assisted development to improve debugging speed and feature iteration."
+  },
+  {
+    "content": "During her internship, Riya used AI tools including Claude, Claude Code, Codex, and ChatGPT to assist with development, debugging, and feature iteration."
+  },
+  {
+    "content": "Riya built a Personal AI Chatbot — a chatbot that answers questions about her, grounded only in information she has provided. It's a completed personal project exploring Retrieval-Augmented Generation (RAG) with a fully free, TypeScript-based stack. Tech stack: Next.js (TypeScript, App Router), Tailwind CSS, Transformers.js for local embeddings, Supabase with pgvector for vector search and storage, Supabase Auth for authentication, and the Groq API for LLM inference, hosted on Vercel."
+  },
+  {
+    "content": "Riya developed the Online Grocery Website (Feb 2025) — a responsive e-commerce grocery website with product browsing, smooth navigation, and mobile-first layouts, with a reusable frontend structure for a consistent cross-device shopping experience. Tech stack: HTML5, CSS3, JavaScript."
+  },
+  {
+    "content": "Riya engineered a Student Management System (May 2025) — a Java desktop application supporting CRUD operations for structured student record management, integrated with MySQL via JDBC for reliable database connectivity and data persistence. Tech stack: Java Swing, MySQL, JDBC."
+  },
+  {
+    "content": "Riya built R49, a React & GSAP based web project (Jan 2026) — an interactive React application with GSAP animations, reusable components, and modern UI transitions, with improved responsiveness and visual engagement using Tailwind CSS and animation-driven design. Tech stack: React.js, Tailwind CSS, GSAP."
+  },
+  {
+    "content": "Riya developed an Image Search Engine (2025) — an application with real-time API integration, backend routing, and responsive rendering, integrating the Unsplash API for keyword-based image retrieval with dynamic search interactions. Tech stack: HTML5, CSS3, JavaScript ES6+, Express.js, REST API."
+  },
+  {
+    "content": "Riya completed an AI & Data Analytics Virtual Internship (Aug–Sep 2025), where she built an Air Quality Forecasting model using Python, NumPy, scikit-learn, and Matplotlib for data preprocessing, model development, and visualization."
+  },
+  {
+    "content": "Riya completed the Deloitte Australia Data Analytics Job Simulation (Jul 2025), creating Tableau dashboards and applying Excel-based data classification to extract business insights."
+  },
+  {
+    "content": "Riya completed the Claude 101 Certification by Anthropic (Jun 2026), covering prompt structuring, AI workflows, Projects, Skills, Artifacts, and AI-assisted development use cases."
+  },
+  {
+    "content": "Riya has additional certifications: NPTEL C Programming and Assembly Language (Aug–Sep 2023), Udemy HTML, CSS and Bootstrap Course (Aug 2024), and Udemy JavaScript Master Course (Apr 2025)."
+  },
+  {
+    "content": "Achievement: Riya cleared GATE (Graduate Aptitude Test in Engineering), a highly competitive national-level exam, not once but twice, showing strong persistence and improvement. She cleared GATE 2025 with an All India Rank of 45497 and a GATE Score of 258, then cleared GATE 2026 with a significantly improved All India Rank of 25584 and a GATE Score of 363. This is one of her proudest academic achievements and accomplishments."
+  },
+  {
+    "content": "Riya is an active problem solver on LeetCode and CodeChef, where she regularly practices and solves programming problems. Her profiles on both platforms are linked from her portfolio."
+  },
+  {
+    "content": "Riya was a Student Mentor at PARMARTH, the Social Education Club at IET Lucknow, from February 2023 to 2024, where she educated 200+ students from underprivileged communities."
+  },
+  {
+    "content": "Outside of work, Riya enjoys reading books, writing diary entries, and playing badminton. She likes listening to music, and has a strong interest in exploring new technologies — always eager to learn and experiment with new tools and ideas."
+  }
+]
