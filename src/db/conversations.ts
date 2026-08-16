@@ -73,3 +73,33 @@ export async function getOrCreateConversationForUser(userId: string) {
 
   return created.id as string;
 }
+
+// Counts how many messages exist for a guest conversation (by session_id).
+// Used to enforce the 2-question guest limit.
+export async function countMessagesForSession(sessionId: string): Promise<number> {
+  const { data: conversation, error: convError } = await supabaseAdmin
+    .from('conversations')
+    .select('id')
+    .eq('session_id', sessionId)
+    .is('user_id', null)
+    .maybeSingle();
+
+  if (convError) {
+    throw new Error(`Failed to look up conversation: ${convError.message}`);
+  }
+
+  if (!conversation) {
+    return 0;
+  }
+
+  const { count, error: countError } = await supabaseAdmin
+    .from('messages')
+    .select('id', { count: 'exact', head: true })
+    .eq('conversation_id', conversation.id);
+
+  if (countError) {
+    throw new Error(`Failed to count messages: ${countError.message}`);
+  }
+
+  return count ?? 0;
+}
