@@ -1,4 +1,4 @@
-import { supabaseAdmin } from "@/lib/supabase-admin";
+import { supabaseAdmin } from '@/lib/supabase-admin';
 
 // Finds an existing conversation for a guest session, or creates a new one.
 export async function getOrCreateSession(sessionId: string) {
@@ -43,7 +43,8 @@ export async function linkSessionToUser(sessionId: string, userId: string) {
   }
 }
 
-// Finds an existing conversation for a logged-in user, or creates a new one.
+// Finds a user's most recent conversation, or creates a new one if they have none at all.
+// Used right after login, to land the user somewhere sensible.
 export async function getOrCreateConversationForUser(userId: string) {
   const { data: existing, error: findError } = await supabaseAdmin
     .from('conversations')
@@ -61,9 +62,15 @@ export async function getOrCreateConversationForUser(userId: string) {
     return existing.id as string;
   }
 
+  return createNewConversationForUser(userId);
+}
+
+// Always creates a brand new conversation thread for a user.
+// Used for the "New Chat" button.
+export async function createNewConversationForUser(userId: string) {
   const { data: created, error: createError } = await supabaseAdmin
     .from('conversations')
-    .insert({ user_id: userId })
+    .insert({ user_id: userId, title: 'New Chat' })
     .select('id')
     .single();
 
@@ -72,6 +79,33 @@ export async function getOrCreateConversationForUser(userId: string) {
   }
 
   return created.id as string;
+}
+
+// Lists all conversations for a user, newest first — for the sidebar.
+export async function getConversationsForUser(userId: string) {
+  const { data, error } = await supabaseAdmin
+    .from('conversations')
+    .select('id, title, created_at')
+    .eq('user_id', userId)
+    .order('created_at', { ascending: false });
+
+  if (error) {
+    throw new Error(`Failed to list conversations: ${error.message}`);
+  }
+
+  return data;
+}
+
+// Updates a conversation's title (e.g. auto-titled from the first message).
+export async function updateConversationTitle(conversationId: string, title: string) {
+  const { error } = await supabaseAdmin
+    .from('conversations')
+    .update({ title })
+    .eq('id', conversationId);
+
+  if (error) {
+    throw new Error(`Failed to update conversation title: ${error.message}`);
+  }
 }
 
 // Counts how many messages exist for a guest conversation (by session_id).

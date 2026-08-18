@@ -1,15 +1,19 @@
-import { getOrCreateSession, countMessagesForSession } from '@/db/conversations';
+import {
+  getOrCreateSession,
+  getOrCreateConversationForUser,
+  countMessagesForSession,
+  updateConversationTitle,
+} from '@/db/conversations';
 import { getRecentMessage, saveMessage } from '@/db/messages';
 import { getChatResponseStream } from '@/lib/chat';
 
 const GUEST_MESSAGE_LIMIT = 2;
 
 export async function POST(request: Request) {
-  const { sessionId, question, isAuthenticated } = await request.json();
+  const { sessionId, question, isAuthenticated, conversationId, userId } = await request.json();
 
   if (!isAuthenticated) {
     const messageCount = await countMessagesForSession(sessionId);
-
     if (messageCount >= GUEST_MESSAGE_LIMIT) {
       return new Response(
         JSON.stringify({ error: 'GUEST_LIMIT_REACHED' }),
@@ -18,8 +22,16 @@ export async function POST(request: Request) {
     }
   }
 
-  const conversationId = await getOrCreateSession(sessionId);
-  const recentHistory = await getRecentMessage(conversationId);
+  let resolvedConversationId: string;
+
+  if (isAuthenticated) {
+    resolvedConversationId = conversationId ?? (await getOrCreateConversationForUser(userId));
+  } else {
+    resolvedConversationId = await getOrCreateSession(sessionId);
+  }
+
+  const recentHistory = await getRecentMessage(resolvedConversationId);
+  const isFirstMessage = recentHistory.length === 0;
 
   let fullAnswer = '';
 
@@ -32,7 +44,13 @@ export async function POST(request: Request) {
         controller.enqueue(encoder.encode(chunk));
       }
 
-      await saveMessage(conversationId, question, fullAnswer);
+      await saveMessage(resolvedConversationId, question, fullAnswer);
+
+      if (isAuthenticated && isFirstMessage) {
+        const title = question.length > 40 ? question.slice(0, 40) + '...' : question;
+        await updateConversationTitle(resolvedConversationId, title);
+      }
+
       controller.close();
     },
   });
@@ -40,7 +58,7 @@ export async function POST(request: Request) {
   return new Response(stream, {
     headers: {
       'Content-Type': 'text/plain; charset=utf-8',
-      'X-Conversation-Id': conversationId,
+      'X-Conversation-Id': resolvedConversationId,
     },
   });
 }

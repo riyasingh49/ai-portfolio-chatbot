@@ -1,15 +1,46 @@
+'use client';
+
+import { useChat } from '@/hooks/useChat';
+import { useAuthListener } from '@/hooks/useAuthListener';
+import { Sidebar } from '@/components/Sidebar';
 import { ChatBox } from '@/components/ChatBox';
-import { AuthButton } from '@/components/AuthButton';
+import { Navbar } from '@/components/Navbar';
 
 export default function HomePage() {
+  const {
+    messages,
+    sendMessage,
+    isLoading,
+    guestLimitReached,
+    onSignedIn,
+    conversations,
+    activeConversationId,
+    switchConversation,
+    startNewChat,
+  } = useChat();
+
+  useAuthListener(onSignedIn);
+
   return (
-    <main className="min-h-screen flex flex-col items-center bg-gray-50 p-4">
-      <div className="w-full max-w-2xl flex justify-end mb-2">
-        <AuthButton />
+    <div className="flex h-screen w-screen overflow-hidden">
+      <Sidebar
+        conversations={conversations}
+        activeConversationId={activeConversationId}
+        onSwitchConversation={switchConversation}
+        onNewChat={startNewChat}
+      />
+      <div className="flex-1 flex flex-col">
+        <Navbar />
+        <div className="flex-1 overflow-hidden">
+          <ChatBox
+            messages={messages}
+            sendMessage={sendMessage}
+            isLoading={isLoading}
+            guestLimitReached={guestLimitReached}
+            onSignedIn={onSignedIn}
+          />
+        </div>
       </div>
-      <div className="w-full h-[80vh]">
-        <ChatBox />
-      </div>
-    </main>
+    </div>
   );
 }

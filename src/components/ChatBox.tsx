@@ -1,15 +1,26 @@
 'use client';
 
 import { useState } from 'react';
-import { useChat } from '@/hooks/useChat';
-import { useAuthListener } from '@/hooks/useAuthListener';
 import { SignInDialog } from './SignInDialog';
+import ReactMarkdown from 'react-markdown';
+import type { chatMessage } from '@/types/chat';
 
-export function ChatBox() {
-  const { messages, sendMessage, isLoading, guestLimitReached, onSignedIn } = useChat();
+type ChatBoxProps = {
+  messages: chatMessage[];
+  sendMessage: (question: string) => void;
+  isLoading: boolean;
+  guestLimitReached: boolean;
+  onSignedIn: () => void;
+};
+
+export function ChatBox({
+  messages,
+  sendMessage,
+  isLoading,
+  guestLimitReached,
+  onSignedIn,
+}: ChatBoxProps) {
   const [input, setInput] = useState('');
-
-  useAuthListener(onSignedIn);
 
   const handleSend = () => {
     const trimmed = input.trim();
@@ -26,40 +37,55 @@ export function ChatBox() {
   };
 
   return (
-    <div className="flex flex-col h-full max-w-2xl mx-auto border rounded-lg overflow-hidden bg-gray-200">
-      <div className="flex-1 overflow-y-auto p-4 space-y-3">
+    <div className="flex flex-col h-full bg-gray-50 w-full">
+      <div className="flex-1 overflow-y-auto p-8 space-y-3  w-full">
         {messages.length === 0 && (
           <p className="text-gray-500">
             Hi! Let&apos;s discuss Riya&apos;s professional background — feel free to ask me anything about her work, projects, or skills.
           </p>
         )}
 
-        {messages.map((message, index) => (
-          <div
-            key={index}
-            className={message.role === 'user' ? 'text-right' : 'text-left'}
-          >
-            <span
-              className={`inline-block px-3 py-2 rounded-lg ${
-                message.role === 'user'
-                  ? 'bg-blue-600 text-white'
-                  : 'bg-gray-200 text-gray-900'
-              }`}
-            >
-              {message.content}
-            </span>
-          </div>
-        ))}
+{messages.map((message, index) => (
+  <div
+    key={index}
+    className={`flex ${message.role === 'user' ? 'justify-end' : 'justify-start'}`}
+  >
+    <span
+      className={`inline-block px-3 py-2 rounded-lg text-left max-w-[80%] ${
+        message.role === 'user'
+          ? 'bg-gray-600 text-white'
+          : 'bg-gray-200 text-gray-900'
+      }`}
+    >
+      {message.role === 'assistant' ? (
+<div className="text-left">
+  <ReactMarkdown
+    components={{
+      p: ({ children }) => <p className="mb-1 last:mb-0">{children}</p>,
+      strong: ({ children }) => <strong className="font-semibold">{children}</strong>,
+      ul: ({ children }) => <ul className="list-disc pl-5 mb-1">{children}</ul>,
+      li: ({ children }) => <li className="mb-0.5">{children}</li>,
+    }}
+  >
+    {message.content.trim()}
+  </ReactMarkdown>
+</div>
+) : (
+  message.content
+)}
+    </span>
+  </div>
+))}
 
         {isLoading && <p className="text-gray-400 text-sm">Thinking...</p>}
       </div>
 
       {guestLimitReached ? (
-        <div className="p-4 border-t">
+        <div className="p-4 border-t w-full">
           <SignInDialog onSuccess={onSignedIn} />
         </div>
       ) : (
-        <div className="flex gap-2 p-4">
+        <div className="flex gap-2 p-4 border-t w-full">
           <input
             className="text-gray-600 flex-1 border rounded px-3 py-2"
             value={input}
@@ -71,7 +97,7 @@ export function ChatBox() {
           <button
             onClick={handleSend}
             disabled={isLoading}
-            className="bg-blue-600 text-white px-4 py-2 rounded disabled:opacity-50"
+            className="bg-blue-950 text-white px-4 py-2 rounded disabled:opacity-50"
           >
             Send
           </button>

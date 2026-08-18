@@ -55,7 +55,7 @@ export function SignInDialog({ onSuccess }: SignInDialogProps) {
   };
 
   return (
-    <div className="p-4 border rounded-lg space-y-3 text-fuchsia-800">
+    <div className="p-4 border rounded-lg space-y-3 text-blue-700">
       <p className="text-sm font-medium">
         {mode === 'signin' ? 'Sign in to continue' : 'Create an account to continue'}
       </p>

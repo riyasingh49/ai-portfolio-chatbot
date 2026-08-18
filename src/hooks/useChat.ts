@@ -3,33 +3,60 @@
 import { useState, useCallback, useEffect } from 'react';
 import { getOrCreateSessionId } from '@/lib/session';
 import { supabaseClient } from '@/lib/supabase-client';
-import { getMyHistoryAction } from '@/actions/history';
+import {
+  listMyConversationsAction,
+  startNewConversationAction,
+  loadConversationAction,
+} from '@/actions/conversations';
 import type { chatMessage } from '@/types/chat';
+
+type ConversationSummary = {
+  id: string;
+  title: string;
+  created_at: string;
+};
 
 export function useChat() {
   const [messages, setMessages] = useState<chatMessage[]>([]);
   const [isLoading, setIsLoading] = useState(false);
   const [guestLimitReached, setGuestLimitReached] = useState(false);
-  const [historyLoaded, setHistoryLoaded] = useState(false);
+  const [conversations, setConversations] = useState<ConversationSummary[]>([]);
+  const [activeConversationId, setActiveConversationId] = useState<string | null>(null);
 
-  const loadHistory = useCallback(async () => {
+  const refreshConversationList = useCallback(async () => {
     const { data: { user } } = await supabaseClient.auth.getUser();
+    if (!user) return;
 
-    if (user) {
-      const history = await getMyHistoryAction(user.id);
-      setMessages(history);
+    const list = await listMyConversationsAction(user.id);
+    setConversations(list);
+
+    // If nothing is active yet, default to the most recent conversation.
+    if (!activeConversationId && list.length > 0) {
+      setActiveConversationId(list[0].id);
+      const history = await loadConversationAction(list[0].id);
+      setMessages(history ?? []);
     }
-
-    setHistoryLoaded(true);
-  }, []);
+  }, [activeConversationId]);
 
   useEffect(() => {
-    loadHistory();
-  }, [loadHistory]);
+    refreshConversationList();
+  }, [refreshConversationList]);
 
-  const resetGuestLimit = useCallback(() => {
-    setGuestLimitReached(false);
+  const switchConversation = useCallback(async (conversationId: string) => {
+    setActiveConversationId(conversationId);
+    const history = await loadConversationAction(conversationId);
+    setMessages(history ?? []);
   }, []);
+
+  const startNewChat = useCallback(async () => {
+    const { data: { user } } = await supabaseClient.auth.getUser();
+    if (!user) return;
+
+    const newId = await startNewConversationAction(user.id);
+    setActiveConversationId(newId);
+    setMessages([]);
+    await refreshConversationList();
+  }, [refreshConversationList]);
 
   const sendMessage = useCallback(async (question: string) => {
     setIsLoading(true);
@@ -44,7 +71,13 @@ export function useChat() {
     const response = await fetch('/api/chat', {
       method: 'POST',
       headers: { 'Content-Type': 'application/json' },
-      body: JSON.stringify({ sessionId, question, isAuthenticated }),
+      body: JSON.stringify({
+        sessionId,
+        question,
+        isAuthenticated,
+        conversationId: isAuthenticated ? activeConversationId : null,
+        userId: user?.id ?? null,
+      }),
     });
 
     if (response.status === 403) {
@@ -56,6 +89,11 @@ export function useChat() {
     if (!response.body) {
       setIsLoading(false);
       return;
+    }
+
+    const newConversationId = response.headers.get('X-Conversation-Id');
+    if (isAuthenticated && newConversationId && newConversationId !== activeConversationId) {
+      setActiveConversationId(newConversationId);
     }
 
     setMessages((prev) => [...prev, { role: 'assistant', content: '' }]);
@@ -78,22 +116,26 @@ export function useChat() {
     }
 
     setIsLoading(false);
-  }, []);
 
-  // Re-load history right after a successful login, so a guest's
-  // history (now linked to their account) and any prior sessions merge in.
+    if (isAuthenticated) {
+      await refreshConversationList();
+    }
+  }, [activeConversationId, refreshConversationList]);
+
   const onSignedIn = useCallback(async () => {
     setGuestLimitReached(false);
-    await loadHistory();
-  }, [loadHistory]);
+    await refreshConversationList();
+  }, [refreshConversationList]);
 
   return {
     messages,
     sendMessage,
     isLoading,
     guestLimitReached,
-    resetGuestLimit,
     onSignedIn,
-    historyLoaded,
+    conversations,
+    activeConversationId,
+    switchConversation,
+    startNewChat,
   };
 }
