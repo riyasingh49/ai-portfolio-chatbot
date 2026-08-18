@@ -18,9 +18,6 @@ Rules:
 
 /**
  * Generates an AI answer using Groq's streaming API.
- *
- * The response is returned chunk-by-chunk using an AsyncGenerator,
- * allowing the frontend to display the answer as it is generated.
  */
 export async function* generateAnswerStream(
   question: string,
@@ -29,16 +26,7 @@ export async function* generateAnswerStream(
 ): AsyncGenerator<string> {
   const context = contextChunks.join("\n\n");
 
-  console.log("========== GROQ START ==========");
-  console.log("Model: openai/gpt-oss-20b");
-  console.log("Question:", question);
-  console.log("Context chunks:", contextChunks.length);
-  console.log("History messages:", recentHistory.length);
-  console.log("Context length:", context.length);
-
   try {
-    console.log("BEFORE GROQ REQUEST");
-
     const stream = await groq.chat.completions.create({
       model: "openai/gpt-oss-20b",
 
@@ -57,35 +45,18 @@ export async function* generateAnswerStream(
       ],
 
       temperature: 0.3,
-
       stream: true,
     });
 
-    console.log("AFTER GROQ REQUEST");
-
     for await (const chunk of stream) {
-      const text =
-        chunk.choices[0]?.delta?.content ?? "";
+      const text = chunk.choices[0]?.delta?.content ?? "";
 
       if (text) {
-        console.log("GROQ CHUNK:", text);
-
         yield text;
       }
     }
-
-    console.log("========== GROQ STREAM COMPLETE ==========");
   } catch (error) {
-    console.error("========== GROQ ERROR ==========");
-
-    if (error instanceof Error) {
-      console.error("Error name:", error.name);
-      console.error("Error message:", error.message);
-      console.error("Error stack:", error.stack);
-    } else {
-      console.error(error);
-    }
-
+    console.error("Groq API error:", error);
     throw error;
   }
 }
