@@ -58,7 +58,7 @@ export async function* generateAnswerStream(
   });
 
   for await (const chunk of stream){
-    const text = chunk.choices[0]?.delta?.content ?? " ";
+    const text = chunk.choices[0]?.delta?.content ?? '';
     if(text){
         yield text;
     }
