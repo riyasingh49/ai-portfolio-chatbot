@@ -9,6 +9,8 @@ import {
   loadConversationAction,
 } from '@/actions/conversations';
 import type { chatMessage } from '@/types/chat';
+import { deleteConversationAction } from '@/actions/conversations';
+
 
 type ConversationSummary = {
   id: string;
@@ -127,6 +129,17 @@ export function useChat() {
     await refreshConversationList();
   }, [refreshConversationList]);
 
+  const deleteChat = useCallback(async (conversationId: string) => {
+    await deleteConversationAction(conversationId);
+
+    if (conversationId === activeConversationId) {
+      setMessages([]);
+      setActiveConversationId(null);
+    }
+
+    await refreshConversationList();
+  }, [activeConversationId, refreshConversationList]);
+
   return {
     messages,
     sendMessage,
@@ -137,5 +150,6 @@ export function useChat() {
     activeConversationId,
     switchConversation,
     startNewChat,
+    deleteChat
   };
 }

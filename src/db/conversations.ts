@@ -137,3 +137,24 @@ export async function countMessagesForSession(sessionId: string): Promise<number
 
   return count ?? 0;
 }
+
+// Deletes a conversation and all its messages.
+export async function deleteConversation(conversationId: string) {
+  const { error: messagesError } = await supabaseAdmin
+    .from('messages')
+    .delete()
+    .eq('conversation_id', conversationId);
+
+  if (messagesError) {
+    throw new Error(`Failed to delete messages: ${messagesError.message}`);
+  }
+
+  const { error: convError } = await supabaseAdmin
+    .from('conversations')
+    .delete()
+    .eq('id', conversationId);
+
+  if (convError) {
+    throw new Error(`Failed to delete conversation: ${convError.message}`);
+  }
+}

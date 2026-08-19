@@ -3,6 +3,7 @@
 import {
   getConversationsForUser,
   createNewConversationForUser,
+  deleteConversation
 } from '@/db/conversations';
 import { getFullConversationHistory } from '@/db/messages';
 
@@ -23,4 +24,9 @@ export async function startNewConversationAction(userId: string) {
 export async function loadConversationAction(conversationId: string) {
   const history = await getFullConversationHistory(conversationId);
   return history;
+}
+
+export async function deleteConversationAction(conversationId: string) {
+  await deleteConversation(conversationId);
+  return { success: true };
 }

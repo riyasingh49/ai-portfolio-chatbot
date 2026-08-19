@@ -17,6 +17,7 @@ export default function HomePage() {
     activeConversationId,
     switchConversation,
     startNewChat,
+    deleteChat,
   } = useChat();
 
   useAuthListener(onSignedIn);
@@ -28,6 +29,7 @@ export default function HomePage() {
         activeConversationId={activeConversationId}
         onSwitchConversation={switchConversation}
         onNewChat={startNewChat}
+        onDeleteChat={deleteChat}
       />
       <div className="flex-1 flex flex-col">
         <Navbar />
