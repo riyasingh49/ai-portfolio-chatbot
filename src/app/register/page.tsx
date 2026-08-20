@@ -6,7 +6,7 @@ import { GoogleSignInButton } from '@/components/auth/google-signin-button';
 export default function RegisterPage() {
   return (
     <main className="flex min-h-screen flex-col items-center justify-center p-8 bg-gray-50">
-      <div className="w-full max-w-sm space-y-6 border-[1px] rounded border-gray-200 p-12">
+      <div className="w-full max-w-sm space-y-6 border rounded border-gray-200 p-12">
         <div className="space-y-2 text-center">
           <h1 className="text-2xl font-bold tracking-tight text-gray-900">Create an account</h1>
           <p className="text-sm text-gray-500">Sign up to start chatting.</p>
