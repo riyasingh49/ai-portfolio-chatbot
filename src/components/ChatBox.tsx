@@ -1,9 +1,10 @@
 'use client';
 
 import { useState } from 'react';
-import { SignInDialog } from './SignInDialog';
+import Link from 'next/link';
 import ReactMarkdown from 'react-markdown';
 import type { chatMessage } from '@/types/chat';
+
 
 type ChatBoxProps = {
   messages: chatMessage[];
@@ -81,10 +82,18 @@ export function ChatBox({
       </div>
 
       {guestLimitReached ? (
-        <div className="p-4 border-t w-full">
-          <SignInDialog onSuccess={onSignedIn} />
-        </div>
-      ) : (
+  <div className="p-4 border-t text-center space-y-2">
+    <p className="text-sm text-gray-600">
+      You&apos;ve reached the guest question limit. Sign in to continue chatting.
+    </p>
+    <Link
+      href="/login"
+      className="inline-block bg-blue-600 text-white px-4 py-2 rounded text-sm"
+    >
+      Sign In
+    </Link>
+  </div>
+) : (
         <div className="flex gap-2 p-4 border-t w-full">
           <input
             className="text-gray-600 flex-1 border rounded px-3 py-2"
