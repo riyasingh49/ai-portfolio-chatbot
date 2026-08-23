@@ -4,7 +4,7 @@ import { signInWithGoogle } from '@/lib/auth';
 
 export function GoogleSignInButton() {
   const handleGoogleSignIn = async () => {
-    await signInWithGoogle('email', 'password');
+    await signInWithGoogle();
   };
 
   return (

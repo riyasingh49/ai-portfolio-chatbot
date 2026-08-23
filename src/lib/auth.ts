@@ -19,7 +19,7 @@ export async function signInWithEmail(email:string, password: string) {
 }
 
 // Sign in with Google (redirects to Google's OAuth flow, then back to your app).
-export async function signInWithGoogle(email:string, password: string) {
+export async function signInWithGoogle() {
     const {data, error} = await supabaseClient.auth.signInWithOAuth({
         provider: 'google',
         options: {
@@ -54,5 +54,5 @@ export async function updatePassword(newPassword:string) {
 // Get the currently logged-in user, if any.
 export async function getCurrentUser() {
     const {data, error} = await supabaseClient.auth.getUser();
-    return {user: data.user ?? null, error};
+    return {user: data?.user ?? null, error};
 }
