@@ -24,7 +24,7 @@ export function EmailDraftCard({ draft, onDismiss }: EmailDraftCardProps) {
   };
 
   return (
-    <div className="border rounded-lg p-4 bg-gray-500 space-y-3 max-w-lg">
+    <div className="border rounded-lg p-4 bg-gray-500 space-y-3 max-w-lg ">
       <p className="text-sm font-medium text-white">Email draft</p>
 
       <div className="space-y-2">
@@ -33,21 +33,21 @@ export function EmailDraftCard({ draft, onDismiss }: EmailDraftCardProps) {
           placeholder="Recipient email"
           value={to}
           onChange={(e) => setTo(e.target.value)}
-          className="w-full border rounded px-3 py-2 text-sm text-gray-800"
+          className="w-full border rounded px-3 py-2 text-sm text-white border-black"
         />
         <input
           type="text"
           placeholder="Subject"
           value={subject}
           onChange={(e) => setSubject(e.target.value)}
-          className="w-full border rounded px-3 py-2 text-sm text-gray-800"
+          className="w-full border rounded px-3 py-2 text-sm text-white border-black"
         />
         <textarea
           placeholder="Body"
           value={body}
           onChange={(e) => setBody(e.target.value)}
           rows={8}
-          className="w-full border rounded px-3 py-2 text-sm text-gray-800 resize-y"
+          className="w-full border rounded px-3 py-2 text-sm text-white border-black resize-y"
         />
       </div>
 
@@ -55,13 +55,13 @@ export function EmailDraftCard({ draft, onDismiss }: EmailDraftCardProps) {
         <button
           onClick={handleSend}
           disabled={!to}
-          className="bg-blue-600 text-white px-4 py-2 rounded text-sm disabled:opacity-50"
+          className="bg-blue-400 text-white px-4 py-2 rounded text-sm disabled:opacity-50"
         >
           Open in Email App
         </button>
         <button
           onClick={onDismiss}
-          className="border px-4 py-2 rounded text-sm border-black"
+          className="border px-4 py-2 rounded text-sm border-blue"
         >
           Discard
         </button>
