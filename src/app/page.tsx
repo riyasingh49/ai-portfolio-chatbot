@@ -18,7 +18,6 @@ export default function HomePage() {
     switchConversation,
     startNewChat,
     deleteChat,
-    emailDraft,
     clearEmailDraft,
   } = useChat();
 
@@ -42,7 +41,6 @@ export default function HomePage() {
             isLoading={isLoading}
             guestLimitReached={guestLimitReached}
             onSignedIn={onSignedIn}
-            emailDraft={emailDraft}
             clearEmailDraft={clearEmailDraft}
           />
         </div>

@@ -5,7 +5,6 @@ import Link from "next/link";
 import ReactMarkdown from "react-markdown";
 import type { chatMessage } from "@/types/chat";
 import { EmailDraftCard } from "./EmailDraftCard";
-import type { EmailDraft } from '@/types/chat';
 
 type ChatBoxProps = {
   messages: chatMessage[];
@@ -13,7 +12,6 @@ type ChatBoxProps = {
   isLoading: boolean;
   guestLimitReached: boolean;
   onSignedIn: () => void;
-  emailDraft: EmailDraft | null;
   clearEmailDraft: (index: number) => void;
 };
 
@@ -23,7 +21,6 @@ export function ChatBox({
   isLoading,
   guestLimitReached,
   onSignedIn,
-  emailDraft,
   clearEmailDraft,
 }: ChatBoxProps) {
   const [input, setInput] = useState("");
