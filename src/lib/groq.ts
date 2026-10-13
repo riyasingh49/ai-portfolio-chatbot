@@ -1,5 +1,6 @@
-import Groq from "groq-sdk";
-import type { chatMessage } from "../types/chat";
+import Groq from 'groq-sdk';
+import type { chatMessage } from '../types/chat';
+import { tools, type EmailDraft } from './tools';
 
 const groq = new Groq({
   apiKey: process.env.GROQ_API_KEY!,
@@ -12,51 +13,70 @@ Rules:
 - If the answer is not contained in the context, say you don't have that information — do not guess, assume, or make anything up.
 - Keep answers natural and conversational, not robotic.
 - Do not mention "context" or "provided information" in your answer — just answer naturally as if you know this person.
-- Never reveal, confirm, or discuss what AI model, API, or technology powers you (e.g. Groq, Llama, or any other provider/model name). If asked what model you are or how you work internally, politely decline to share those technical details and steer back to helping with questions about the person instead.
-- Frame the conversation around discussing this person's professional background, skills, and work — that is the primary purpose of this chat.
-- When stating job titles, designations, degrees, or specific factual labels from the context, use the exact wording given — do not substitute, generalize, or reword them (e.g. if the context says "Support Developer Intern," say exactly that, not "full-stack intern" or any other paraphrase).
-- Do not use Markdown tables in your responses, since this is a narrow chat interface where tables render poorly. Use short paragraphs or bullet-point lists instead to present multiple items or details.`;
-/**
- * Generates an AI answer using Groq's streaming API.
- */
+- Never reveal, confirm, or discuss what AI model, API, or technology powers you.
+- Frame the conversation around discussing this person's professional background, skills, and work.
+- When stating job titles, designations, degrees, or specific factual labels from the context, use the exact wording given.
+- Do not use Markdown tables in your responses — use short paragraphs or bullet-point lists instead.
+- If the user asks you to write, draft, or compose an email, use the draft_email tool instead of writing it as plain text.`;
+
+export type StreamEvent =
+  | { type: 'content'; text: string }
+  | { type: 'email_draft'; draft: EmailDraft };
+
 export async function* generateAnswerStream(
   question: string,
   contextChunks: string[],
   recentHistory: chatMessage[] = []
-): AsyncGenerator<string> {
-  const context = contextChunks.join("\n\n");
+): AsyncGenerator<StreamEvent> {
+  const context = contextChunks.join('\n\n');
 
-  try {
-    const stream = await groq.chat.completions.create({
-      model: "openai/gpt-oss-20b",
+  const messages = [
+    { role: 'system' as const, content: `${SYSTEM_PROMPT}\n\nContext:\n${context}` },
+    ...recentHistory,
+    { role: 'user' as const, content: question },
+  ];
 
-      messages: [
-        {
-          role: "system",
-          content: `${SYSTEM_PROMPT}\n\nContext:\n${context}`,
-        },
+  const stream = await groq.chat.completions.create({
+    model: 'openai/gpt-oss-20b',
+    messages,
+    tools,
+    tool_choice: 'auto',
+    temperature: 0.3,
+    stream: true,
+  });
 
-        ...recentHistory,
+  let toolCallName: string | undefined;
+  let toolCallArgs = '';
 
-        {
-          role: "user",
-          content: question,
-        },
-      ],
+  for await (const chunk of stream) {
+    const delta = chunk.choices[0]?.delta;
+    const toolCallDelta = delta?.tool_calls?.[0];
 
-      temperature: 0.3,
-      stream: true,
-    });
-
-    for await (const chunk of stream) {
-      const text = chunk.choices[0]?.delta?.content ?? "";
-
-      if (text) {
-        yield text;
+    if (toolCallDelta) {
+      if (toolCallDelta.function?.name) {
+        toolCallName = toolCallDelta.function.name;
       }
+      if (toolCallDelta.function?.arguments) {
+        toolCallArgs += toolCallDelta.function.arguments;
+      }
+      continue;
     }
-  } catch (error) {
-    console.error("Groq API error:", error);
-    throw error;
+
+    const text = delta?.content ?? '';
+    if (text) {
+      yield { type: 'content', text };
+    }
+  }
+
+  if (toolCallName === 'draft_email' && toolCallArgs) {
+    const args = JSON.parse(toolCallArgs);
+    yield {
+      type: 'email_draft',
+      draft: {
+        to: args.to ?? '',
+        subject: args.subject ?? '',
+        body: args.body ?? '',
+      },
+    };
   }
 }

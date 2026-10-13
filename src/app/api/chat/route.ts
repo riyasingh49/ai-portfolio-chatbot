@@ -10,6 +10,11 @@ import { getChatResponseStream } from '@/lib/chat';
 
 const GUEST_MESSAGE_LIMIT = 2;
 
+// Prefix used to mark an email-draft payload inside the otherwise plain-text
+// stream, so the frontend can tell "this chunk is a draft" apart from
+// normal streamed answer text.
+const EMAIL_DRAFT_MARKER = '__EMAIL_DRAFT__:';
+
 export async function POST(request: Request) {
   try {
     const {
@@ -117,10 +122,17 @@ export async function POST(request: Request) {
       recentHistory.length === 0;
 
     // -----------------------------------------
-    // Full answer accumulator
+    // Accumulators
     // -----------------------------------------
 
-    let fullAnswer = '';
+    // Accumulates normal streamed text, used to save the message
+    // to the database once the stream finishes.
+    let fullText = '';
+
+    // Tracks whether this response turned out to be an email draft
+    // instead of a normal answer, so we save a short placeholder
+    // to the messages table rather than raw draft JSON.
+    let emailDraftSent = false;
 
     // -----------------------------------------
     // Create streaming response
@@ -131,27 +143,57 @@ export async function POST(request: Request) {
         const encoder = new TextEncoder();
 
         try {
+          // getChatResponseStream now yields typed events instead of
+          // plain strings: either { type: 'content', text } for normal
+          // answer chunks, or a single { type: 'email_draft', draft }
+          // if the model called the draft_email tool instead of
+          // answering in plain text.
           for await (
-            const chunk of getChatResponseStream(
+            const event of getChatResponseStream(
               question,
               recentHistory
             )
           ) {
-            fullAnswer += chunk;
+            if (event.type === 'content') {
+              fullText += event.text;
 
-            controller.enqueue(
-              encoder.encode(chunk)
-            );
+              controller.enqueue(
+                encoder.encode(event.text)
+              );
+            }
+
+            if (event.type === 'email_draft') {
+              emailDraftSent = true;
+
+              // Send the draft as one marked chunk: the frontend
+              // detects the EMAIL_DRAFT_MARKER prefix and parses
+              // everything after it as JSON, instead of treating
+              // it as visible chat text.
+              const payload =
+                EMAIL_DRAFT_MARKER +
+                JSON.stringify(event.draft);
+
+              controller.enqueue(
+                encoder.encode(payload)
+              );
+            }
           }
 
           // -----------------------------------------
           // Save message
           // -----------------------------------------
 
+          // If the model drafted an email, store a short placeholder
+          // instead of raw draft JSON, so conversation history stays
+          // human-readable if ever displayed.
+          const savedText = emailDraftSent
+            ? '[Drafted an email]'
+            : fullText;
+
           await saveMessage(
             resolvedConversationId,
             question,
-            fullAnswer
+            savedText
           );
 
           // -----------------------------------------
@@ -163,8 +205,8 @@ export async function POST(request: Request) {
             isFirstMessage
           ) {
             const title =
-              question.length > 40
-                ? question.slice(0, 40) + '...'
+              question.length > 20
+                ? question.slice(0, 20) + '...'
                 : question;
 
             await updateConversationTitle(

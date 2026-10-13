@@ -1,10 +1,10 @@
-'use client';
+"use client";
 
-import { useChat } from '@/hooks/useChat';
-import { useAuthListener } from '@/hooks/useAuthListener';
-import { Sidebar } from '@/components/Sidebar';
-import { ChatBox } from '@/components/ChatBox';
-import { Navbar } from '@/components/Navbar';
+import { useChat } from "@/hooks/useChat";
+import { useAuthListener } from "@/hooks/useAuthListener";
+import { Sidebar } from "@/components/Sidebar";
+import { ChatBox } from "@/components/ChatBox";
+import { Navbar } from "@/components/Navbar";
 
 export default function HomePage() {
   const {
@@ -18,6 +18,8 @@ export default function HomePage() {
     switchConversation,
     startNewChat,
     deleteChat,
+    emailDraft,
+    clearEmailDraft,
   } = useChat();
 
   useAuthListener(onSignedIn);
@@ -40,6 +42,8 @@ export default function HomePage() {
             isLoading={isLoading}
             guestLimitReached={guestLimitReached}
             onSignedIn={onSignedIn}
+            emailDraft={emailDraft}
+            clearEmailDraft={clearEmailDraft}
           />
         </div>
       </div>

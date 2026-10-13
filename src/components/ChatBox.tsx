@@ -1,10 +1,11 @@
-'use client';
+"use client";
 
-import { useState } from 'react';
-import Link from 'next/link';
-import ReactMarkdown from 'react-markdown';
-import type { chatMessage } from '@/types/chat';
-
+import { useState } from "react";
+import Link from "next/link";
+import ReactMarkdown from "react-markdown";
+import type { chatMessage } from "@/types/chat";
+import { EmailDraftCard } from "./EmailDraftCard";
+import type { EmailDraft } from '@/types/chat';
 
 type ChatBoxProps = {
   messages: chatMessage[];
@@ -12,6 +13,8 @@ type ChatBoxProps = {
   isLoading: boolean;
   guestLimitReached: boolean;
   onSignedIn: () => void;
+  emailDraft: EmailDraft | null;
+  clearEmailDraft: (index: number) => void;
 };
 
 export function ChatBox({
@@ -20,80 +23,109 @@ export function ChatBox({
   isLoading,
   guestLimitReached,
   onSignedIn,
+  emailDraft,
+  clearEmailDraft,
 }: ChatBoxProps) {
-  const [input, setInput] = useState('');
+  const [input, setInput] = useState("");
 
   const handleSend = () => {
+    
     const trimmed = input.trim();
+
     if (!trimmed || isLoading) return;
 
     sendMessage(trimmed);
-    setInput('');
+    setInput("");
   };
 
   const handleKeyDown = (e: React.KeyboardEvent<HTMLInputElement>) => {
-    if (e.key === 'Enter') {
+    if (e.key === "Enter") {
       handleSend();
     }
   };
 
   return (
     <div className="flex flex-col h-full bg-gray-50 w-full">
-      <div className="flex-1 overflow-y-auto p-8 space-y-3  w-full">
+      {/* Chat messages */}
+      <div className="flex-1 overflow-y-auto p-8 space-y-3 w-full">
         {messages.length === 0 && (
           <p className="text-gray-500">
-            Hi! Let&apos;s discuss Riya&apos;s professional background — feel free to ask me anything about her work, projects, or skills.
+            Hi! Let&apos;s discuss Riya&apos;s professional background — feel
+            free to ask me anything about her work, projects, or skills.
           </p>
         )}
 
 {messages.map((message, index) => (
-  <div
-    key={index}
-    className={`flex ${message.role === 'user' ? 'justify-end' : 'justify-start'}`}
-  >
-    <span
-      className={`inline-block px-3 py-2 rounded-lg text-left max-w-[80%] ${
-        message.role === 'user'
-          ? 'bg-gray-600 text-white'
-          : 'bg-gray-200 text-gray-900'
+  <div key={index}>
+    <div
+      className={`flex ${
+        message.role === "user" ? "justify-end" : "justify-start"
       }`}
     >
-      {message.role === 'assistant' ? (
-<div className="text-left">
-  <ReactMarkdown
-    components={{
-      p: ({ children }) => <p className="mb-1 last:mb-0">{children}</p>,
-      strong: ({ children }) => <strong className="font-semibold">{children}</strong>,
-      ul: ({ children }) => <ul className="list-disc pl-5 mb-1">{children}</ul>,
-      li: ({ children }) => <li className="mb-0.5">{children}</li>,
-    }}
-  >
-    {message.content.trim()}
-  </ReactMarkdown>
-</div>
-) : (
-  message.content
-)}
-    </span>
+      <span
+        className={`inline-block px-3 py-2 rounded-lg text-left max-w-[80%] ${
+          message.role === "user"
+            ? "bg-gray-600 text-white"
+            : "bg-gray-200 text-gray-900"
+        }`}
+      >
+        {message.role === "assistant" ? (
+          <div className="text-left">
+            <ReactMarkdown
+              components={{
+                p: ({ children }) => (
+                  <p className="mb-1 last:mb-0">{children}</p>
+                ),
+                strong: ({ children }) => (
+                  <strong className="font-semibold">{children}</strong>
+                ),
+                ul: ({ children }) => (
+                  <ul className="list-disc pl-5 mb-1">{children}</ul>
+                ),
+                li: ({ children }) => <li className="mb-0.5">{children}</li>,
+              }}
+            >
+              {message.content.trim()}
+            </ReactMarkdown>
+          </div>
+        ) : (
+          message.content
+        )}
+      </span>
+    </div>
+
+    {message.emailDraft && (
+      <div className="mt-2">
+        <EmailDraftCard
+          draft={message.emailDraft}
+          onDismiss={() => clearEmailDraft(index)}
+        />
+      </div>
+    )}
   </div>
 ))}
+
+       
 
         {isLoading && <p className="text-gray-400 text-sm">Thinking...</p>}
       </div>
 
+      {/* Guest limit */}
       {guestLimitReached ? (
-  <div className="p-4 border-t text-center space-y-2">
-    <p className="text-sm text-gray-600">
-      You&apos;ve reached the guest question limit. Sign in to continue chatting.
-    </p>
-    <Link
-      href="/login"
-      className="inline-block bg-blue-600 text-white px-4 py-2 rounded text-sm"
-    >
-      Sign In
-    </Link>
-  </div>
-) : (
+        <div className="p-4 border-t text-center space-y-2">
+          <p className="text-sm text-gray-600">
+            You&apos;ve reached the guest question limit. Sign in to continue
+            chatting.
+          </p>
+
+          <Link
+            href="/login"
+            className="inline-block bg-blue-600 text-white px-4 py-2 rounded text-sm"
+          >
+            Sign In
+          </Link>
+        </div>
+      ) : (
         <div className="flex gap-2 p-4 border-t w-full">
           <input
             className="text-gray-600 flex-1 border rounded px-3 py-2"
@@ -103,6 +135,7 @@ export function ChatBox({
             placeholder="Ask something..."
             disabled={isLoading}
           />
+
           <button
             onClick={handleSend}
             disabled={isLoading}
