@@ -1,36 +1,31 @@
 # AI Portfolio Chatbot
 
-A conversational AI that answers questions about me — grounded entirely in my own data, with no hallucination outside that scope. Built end-to-end as a personal project to explore Retrieval-Augmented Generation (RAG), streaming LLM responses, and full-stack authentication, on a fully free, TypeScript-based infrastructure.
+A chatbot that answers questions about my background, skills, projects and experience, so a recruiter or hiring manager can simply ask instead of scanning a resume. It is built on a Retrieval-Augmented Generation (RAG) pipeline over a curated knowledge base, with streaming responses, user accounts and saved conversations.
 
 **Live demo:** https://ai-portfolio-chatbot-65kk.vercel.app
 
 ---
 
-## Overview
+## What It Does
 
-This isn't a wrapper around a chatbot API — it's a full RAG pipeline built from the ground up: personal data is chunked and embedded, stored as vectors, semantically retrieved per question, and used to ground an LLM's response, with the entire flow streamed word-by-word back to the user. On top of that sits multi-thread conversation management, guest access with usage limits, and full authentication — the same shape of product decisions a real SaaS chat product has to make.
-
-## Features
-
-- **Grounded Q&A** — answers only from my personal data; explicitly declines out-of-scope questions rather than guessing
-- **Multi-thread conversations** — multiple saved chats per user, switchable and deletable, like a typical AI chat product
-- **Live streaming responses** — word-by-word output via the Web Streams API, not a single blocking response
-- **Guest access with limits** — unauthenticated users get a limited number of questions before sign-in is required, with their conversation preserved and linked to their account on login
-- **Full authentication** — email/password and Google OAuth, plus password reset, via Supabase Auth
-- **Persistent history** — every conversation stored and retrievable across sessions
+- **Answers questions about me** — retrieves the most relevant facts from my knowledge base and uses them to ground each answer; the model is instructed to say so when something isn't covered
+- **Streams responses** — answers appear as they are generated
+- **Saves conversations** — multiple chat threads per user, switchable and deletable, with full history
+- **Guest access** — visitors can try it without an account (limited to 10 questions); signing in links their guest chats to their account
+- **Authentication** — email/password, Google sign-in and password reset
+- **Drafts emails** — ask it to write an email and it returns an editable draft you can open in your email app
 
 ## Tech Stack
 
 | Layer | Technology |
 |---|---|
-| Framework | [Next.js](https://nextjs.org/) (TypeScript, App Router) |
-| Styling | Tailwind CSS |
-| Embeddings | [Hugging Face Inference API](https://huggingface.co/docs/api-inference/) (`all-MiniLM-L6-v2`) |
-| Vector Search | [Supabase](https://supabase.com/) + `pgvector` |
-| Authentication | Supabase Auth (email/password + Google OAuth) |
-| Conversation Storage | Supabase (Postgres) |
-| LLM Inference | [Groq API](https://groq.com/) (`openai/gpt-oss-20b`) |
-| Hosting | [Vercel](https://vercel.com/) |
+| Framework | Next.js 16 (App Router), React 19, TypeScript |
+| Styling | Tailwind CSS 4 |
+| Embeddings | Cloudflare Workers AI (`bge-small-en-v1.5`, 384 dimensions) |
+| Vector search | Supabase Postgres + `pgvector` |
+| Auth & storage | Supabase Auth and Postgres |
+| LLM | Groq API (`openai/gpt-oss-20b`), streaming, with tool calling |
+| Hosting | Vercel |
 
 ## Architecture
 
@@ -38,72 +33,57 @@ This isn't a wrapper around a chatbot API — it's a full RAG pipeline built fro
 User question
    │
    ▼
-Frontend (React hook) ── sends question + session/user context
+Frontend (React hook) ── question + session / user context
    │
    ▼
-Next.js Route Handler (/api/chat)
-   │
-   ├─► Guest limit check (if not authenticated)
-   ├─► Resolve/create conversation (Supabase)
-   ├─► Fetch recent conversation history (Supabase)
-   │
-   ▼
-Embed question (Hugging Face Inference API)
+POST /api/chat  (Next.js Route Handler)
+   ├─► Guest limit check
+   ├─► Resolve or create the conversation
+   ├─► Load recent conversation history
    │
    ▼
-Semantic search (Supabase / pgvector) ── top matching knowledge chunks
+Embed the question  (Cloudflare Workers AI)
    │
    ▼
-Groq API (LLM) ── system prompt + context + history + question
+Semantic search  (Supabase pgvector) ── top matching knowledge entries
    │
    ▼
-Streamed response ── sent word-by-word back to the browser
+Groq LLM ── system prompt + retrieved context + history + question
+   │
+   ├─► text ───────────────► streamed to the browser token by token
+   └─► draft_email call ───► rendered as an editable email card
    │
    ▼
-Save question + answer (Supabase) ── conversation history persisted
+Save the exchange to Postgres and title the conversation
 ```
 
-**Layered separation of concerns:**
-- `lib/` — infrastructure and orchestration (clients, embedding calls, retrieval logic, LLM calls)
-- `db/` — one file per database table; every query for that table lives there, nowhere else
-- `actions/` — Server Actions, used where streaming isn't required
-- `app/api/` — Route Handlers, used specifically for the streaming chat endpoint, since Server Actions can't stream
+### The RAG pipeline
 
-## Key Technical Decisions
+1. **Knowledge base** — my professional information lives in `data/knowledge_base.json` as short, self-contained entries.
+2. **Embedding** — a script embeds each entry and stores the vector in Supabase (`pgvector`).
+3. **Retrieval** — each question is embedded with the same model and matched by similarity; the top matches are passed to the LLM as context.
+4. **Generation** — Groq streams the answer back, guided by a system prompt that keeps responses on topic and based on the retrieved context.
 
-**RAG over fine-tuning.** Fine-tuning a model on a small, factual personal dataset risks blending memorized facts with pretrained knowledge, making hallucination hard to bound. RAG guarantees scope control — the model only ever sees retrieved context at answer time.
+### Code organization
 
-**Route Handlers for chat, Server Actions elsewhere.** Server Actions return a single value on completion — they can't stream. The chat endpoint needed live, incremental output, so it's a Route Handler using `ReadableStream`; everything else that doesn't need streaming (auth linking, conversation management) uses Server Actions for their simpler client-calling ergonomics.
+- `src/app/api/chat/route.ts` — the streaming chat endpoint
+- `src/lib/` — embeddings, retrieval, LLM calls, tool definitions, Supabase clients, auth helpers
+- `src/db/` — database queries, one file per table
+- `src/actions/` — Server Actions for non-streaming work (conversations, guest-to-user linking)
+- `src/hooks/` — `useChat` (streaming and state) and `useAuthListener`
+- `src/components/` — chat UI, sidebar, email draft card, auth forms
+- `scripts/embed-knowledge.ts` — generates and stores embeddings
 
-**Exact search over approximate indexing.** An `ivfflat` vector index was initially added by default, but at this dataset's scale (~30 rows), approximate indexing with a `lists` parameter tuned for large datasets caused the index to silently return near-random results. Diagnosed via direct similarity-score inspection and resolved by dropping the index — exact search is faster and fully accurate at this scale, and approximate indexing only pays off at far larger row counts.
+## Design Decisions
 
-**Hosted embeddings over local inference in production.** Embeddings were originally generated locally via Transformers.js. This broke in Vercel's serverless environment, since `onnxruntime-node`'s native binary isn't available there. Rather than moving off Vercel, the embedding call was swapped to Hugging Face's hosted Inference API — a contained, single-function change, since embedding generation was already isolated behind one interface used everywhere else in the app.
-
-## Project Structure
-
-```
-├── src/
-│   ├── app/
-│   │   ├── api/chat/route.ts       # Streaming chat endpoint
-│   │   ├── auth/callback/route.ts  # OAuth callback handler
-│   │   ├── login/                  # Sign-in page
-│   │   ├── register/               # Sign-up page
-│   │   ├── forgot-password/        # Password reset request page
-│   │   ├── reset-password/         # Set new password page
-│   │   └── page.tsx                # Main chat interface
-│   ├── components/                 # ChatBox, Sidebar, SignInDialog, Navbar
-│   ├── hooks/                      # useChat, useAuthListener
-│   ├── actions/                    # Server Actions (auth, conversations)
-│   ├── lib/                        # Clients, embeddings, retrieval, LLM calls, auth helpers
-│   ├── db/                         # Database queries, one file per table
-│   └── types/                      # Shared TypeScript types
-├── data/
-│   └── knowledge_base.json         # Source personal data
-└── scripts/
-    └── embed-knowledge.ts          # One-time embedding generation script
-```
+- **RAG over fine-tuning** — the data is a small set of facts that changes over time; with RAG, updating an answer means editing a JSON entry and re-running the embed script.
+- **Route Handler for chat, Server Actions elsewhere** — Server Actions return one value on completion and can't stream, so the chat endpoint is a Route Handler built on `ReadableStream`; everything else uses Server Actions.
+- **Exact vector search** — at this dataset size (~30 entries), exact search is accurate and fast, so no approximate index is used.
+- **Hosted embeddings** — embedding generation is isolated behind one function and calls a hosted API, which keeps it compatible with Vercel's serverless runtime.
 
 ## Running Locally
+
+Requires Node.js 20.9+, a Supabase project (with `pgvector`), a Groq API key and a Cloudflare Workers AI token.
 
 ```bash
 git clone https://github.com/riyasingh49/ai-portfolio-chatbot.git
@@ -111,20 +91,27 @@ cd ai-portfolio-chatbot
 npm install
 ```
 
-Create `.env.local` with:
+Create `.env.local`:
+
 ```
 NEXT_PUBLIC_SUPABASE_URL=
-NEXT_PUBLIC_SUPABASE_ANON_KEY=
+NEXT_PUBLIC_ANON_KEY=
 SUPABASE_SERVICE_ROLE_KEY=
 GROQ_API_KEY=
-HUGGINGFACE_API_KEY=
+CLOUDFLARE_ACCOUNT_ID=
+CLOUDFLARE_API_TOKEN=
 ```
 
-Generate embeddings for the knowledge base, then run the dev server:
+Embed the knowledge base, then start the app:
+
 ```bash
 npx tsx --env-file=.env.local scripts/embed-knowledge.ts
 npm run dev
 ```
+
+## About
+
+Built by **Riya Singh** as a personal project to explore RAG, streaming LLM responses and full-stack authentication.
 
 ## License
 
