@@ -8,7 +8,7 @@ import {
 import { getRecentMessage, saveMessage } from '@/db/messages';
 import { getChatResponseStream } from '@/lib/chat';
 
-const GUEST_MESSAGE_LIMIT = 2;
+const GUEST_MESSAGE_LIMIT = 10;
 
 // Prefix used to mark an email-draft payload inside the otherwise plain-text
 // stream, so the frontend can tell "this chunk is a draft" apart from
