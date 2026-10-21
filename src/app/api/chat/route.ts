@@ -1,5 +1,6 @@
 import {
   getOrCreateSession,
+  getGuestConversationForSession,
   getOrCreateConversationForUser,
   countMessagesForSession,
   updateConversationTitle,
@@ -105,8 +106,22 @@ export async function POST(request: Request) {
         conversationId ??
         (await getOrCreateConversationForUser(userId));
     } else {
-      resolvedConversationId =
-        await getOrCreateSession(sessionId);
+      const guestConversationId =
+        conversationId
+          ? await getGuestConversationForSession(conversationId, sessionId)
+          : await getOrCreateSession(sessionId);
+
+      if (!guestConversationId) {
+        return new Response(
+          JSON.stringify({ error: 'GUEST_CONVERSATION_NOT_FOUND' }),
+          {
+            status: 404,
+            headers: { 'Content-Type': 'application/json' },
+          }
+        );
+      }
+
+      resolvedConversationId = guestConversationId;
     }
 
     // -----------------------------------------
@@ -200,10 +215,7 @@ export async function POST(request: Request) {
           // Generate title for first message
           // -----------------------------------------
 
-          if (
-            isAuthenticated &&
-            isFirstMessage
-          ) {
+          if (isFirstMessage) {
             const title =
               question.length > 20
                 ? question.slice(0, 20) + '...'

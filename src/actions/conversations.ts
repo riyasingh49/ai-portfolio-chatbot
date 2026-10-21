@@ -3,6 +3,7 @@
 import {
   getConversationsForUser,
   createNewConversationForUser,
+  createNewConversationForGuestSession,
   deleteConversation
 } from '@/db/conversations';
 import { getFullConversationHistory } from '@/db/messages';
@@ -17,6 +18,12 @@ export async function listMyConversationsAction(userId: string) {
 export async function startNewConversationAction(userId: string) {
   const conversationId = await createNewConversationForUser(userId);
   return conversationId;
+}
+
+// Starts a new thread while retaining the guest session used for limits and
+// later account linking.
+export async function startNewGuestConversationAction(sessionId: string) {
+  return createNewConversationForGuestSession(sessionId);
 }
 
 // Fetches the full message history for a specific conversation —

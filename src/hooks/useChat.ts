@@ -6,6 +6,7 @@ import { supabaseClient } from '@/lib/supabase-client';
 import {
   listMyConversationsAction,
   startNewConversationAction,
+  startNewGuestConversationAction,
   loadConversationAction,
   deleteConversationAction,
 } from '@/actions/conversations';
@@ -25,6 +26,7 @@ export function useChat() {
   const [guestLimitReached, setGuestLimitReached] = useState(false);
   const [conversations, setConversations] = useState<ConversationSummary[]>([]);
   const [activeConversationId, setActiveConversationId] = useState<string | null>(null);
+  const [activeGuestConversationId, setActiveGuestConversationId] = useState<string | null>(null);
 
   const refreshConversationList = useCallback(async () => {
     const { data: { user } } = await supabaseClient.auth.getUser();
@@ -52,7 +54,14 @@ export function useChat() {
 
   const startNewChat = useCallback(async () => {
     const { data: { user } } = await supabaseClient.auth.getUser();
-    if (!user) return;
+
+    if (!user) {
+      const newId = await startNewGuestConversationAction(getOrCreateSessionId());
+      setActiveGuestConversationId(newId);
+      setMessages([]);
+      setGuestLimitReached(false);
+      return;
+    }
 
     const newId = await startNewConversationAction(user.id);
     setActiveConversationId(newId);
@@ -100,7 +109,9 @@ export function useChat() {
         sessionId,
         question,
         isAuthenticated,
-        conversationId: isAuthenticated ? activeConversationId : null,
+        conversationId: isAuthenticated
+          ? activeConversationId
+          : activeGuestConversationId,
         userId: user?.id ?? null,
       }),
     });
@@ -117,8 +128,14 @@ export function useChat() {
     }
 
     const newConversationId = response.headers.get('X-Conversation-Id');
-    if (isAuthenticated && newConversationId && newConversationId !== activeConversationId) {
-      setActiveConversationId(newConversationId);
+    if (newConversationId) {
+      if (isAuthenticated && newConversationId !== activeConversationId) {
+        setActiveConversationId(newConversationId);
+      }
+
+      if (!isAuthenticated && newConversationId !== activeGuestConversationId) {
+        setActiveGuestConversationId(newConversationId);
+      }
     }
 
     setMessages((prev) => [...prev, { role: 'assistant', content: '' }]);
@@ -130,10 +147,57 @@ export function useChat() {
     let markerFound = false;
     let draftJson = '';
 
+    const appendToAssistant = (content: string) => {
+      if (!content) return;
+
+      setMessages((prev) => {
+        const updated = [...prev];
+        const last = updated[updated.length - 1];
+        updated[updated.length - 1] = {
+          ...last,
+          content: last.content + content,
+        };
+        return updated;
+      });
+    };
+
+    const processBuffer = (isFinalChunk = false) => {
+      if (markerFound) {
+        draftJson += buffer;
+        buffer = '';
+        return;
+      }
+
+      const markerIndex = buffer.indexOf(EMAIL_DRAFT_MARKER);
+
+      if (markerIndex !== -1) {
+        appendToAssistant(buffer.slice(0, markerIndex));
+        markerFound = true;
+        draftJson = buffer.slice(markerIndex + EMAIL_DRAFT_MARKER.length);
+        buffer = '';
+        return;
+      }
+
+      // While the stream is still open, retain only enough text to detect a
+      // marker that may span two network chunks. Once it has ended, this
+      // remaining text is normal answer content and must be displayed.
+      const flushLength = isFinalChunk
+        ? buffer.length
+        : Math.max(0, buffer.length - EMAIL_DRAFT_MARKER.length);
+      appendToAssistant(buffer.slice(0, flushLength));
+      buffer = buffer.slice(flushLength);
+    };
+
     while (true) {
       const { done, value } = await reader.read();
 
       if (done) {
+        // Flush TextDecoder's internal state, then display the marker-sized
+        // tail retained by processBuffer. Previously this tail was never
+        // rendered, truncating every normal streamed response.
+        buffer += decoder.decode();
+        processBuffer(true);
+
         // Stream finished — if a draft was being collected, attach it
         // to the assistant message we've been building, not to any
         // separate global state, so it stays anchored to this exact turn.
@@ -154,42 +218,7 @@ export function useChat() {
       }
 
       buffer += decoder.decode(value, { stream: true });
-
-      if (!markerFound) {
-        const markerIndex = buffer.indexOf(EMAIL_DRAFT_MARKER);
-
-        if (markerIndex === -1) {
-          const safeFlushLength = Math.max(0, buffer.length - EMAIL_DRAFT_MARKER.length);
-          const toFlush = buffer.slice(0, safeFlushLength);
-          buffer = buffer.slice(safeFlushLength);
-
-          if (toFlush) {
-            setMessages((prev) => {
-              const updated = [...prev];
-              const last = updated[updated.length - 1];
-              updated[updated.length - 1] = { ...last, content: last.content + toFlush };
-              return updated;
-            });
-          }
-        } else {
-          const beforeMarker = buffer.slice(0, markerIndex);
-          if (beforeMarker) {
-            setMessages((prev) => {
-              const updated = [...prev];
-              const last = updated[updated.length - 1];
-              updated[updated.length - 1] = { ...last, content: last.content + beforeMarker };
-              return updated;
-            });
-          }
-
-          markerFound = true;
-          draftJson = buffer.slice(markerIndex + EMAIL_DRAFT_MARKER.length);
-          buffer = '';
-        }
-      } else {
-        draftJson += buffer;
-        buffer = '';
-      }
+      processBuffer();
     }
 
     setIsLoading(false);
@@ -197,7 +226,7 @@ export function useChat() {
     if (isAuthenticated) {
       await refreshConversationList();
     }
-  }, [activeConversationId, refreshConversationList]);
+  }, [activeConversationId, activeGuestConversationId, refreshConversationList]);
 
   const onSignedIn = useCallback(async () => {
     setGuestLimitReached(false);

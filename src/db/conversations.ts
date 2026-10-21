@@ -7,6 +7,8 @@ export async function getOrCreateSession(sessionId: string) {
     .select('id')
     .eq('session_id', sessionId)
     .is('user_id', null)
+    .order('created_at', { ascending: false })
+    .limit(1)
     .maybeSingle();
 
   if (findError) {
@@ -28,6 +30,42 @@ export async function getOrCreateSession(sessionId: string) {
   }
 
   return created.id as string;
+}
+
+// Creates a separate thread for an existing guest session. The session remains
+// the unit used for the guest message limit, while each thread gets its own row.
+export async function createNewConversationForGuestSession(sessionId: string) {
+  const { data: created, error: createError } = await supabaseAdmin
+    .from('conversations')
+    .insert({ session_id: sessionId, title: 'New Chat' })
+    .select('id')
+    .single();
+
+  if (createError) {
+    throw new Error(`Failed to create guest conversation: ${createError.message}`);
+  }
+
+  return created.id as string;
+}
+
+// Confirms that a client-supplied guest conversation belongs to its session.
+export async function getGuestConversationForSession(
+  conversationId: string,
+  sessionId: string
+) {
+  const { data: conversation, error } = await supabaseAdmin
+    .from('conversations')
+    .select('id')
+    .eq('id', conversationId)
+    .eq('session_id', sessionId)
+    .is('user_id', null)
+    .maybeSingle();
+
+  if (error) {
+    throw new Error(`Failed to look up guest conversation: ${error.message}`);
+  }
+
+  return conversation?.id as string | undefined;
 }
 
 // Links a guest session's conversation(s) to a newly authenticated user.
@@ -111,25 +149,26 @@ export async function updateConversationTitle(conversationId: string, title: str
 // Counts how many messages exist for a guest conversation (by session_id).
 // Used to enforce the 2-question guest limit.
 export async function countMessagesForSession(sessionId: string): Promise<number> {
-  const { data: conversation, error: convError } = await supabaseAdmin
+  const { data: conversations, error: convError } = await supabaseAdmin
     .from('conversations')
     .select('id')
     .eq('session_id', sessionId)
-    .is('user_id', null)
-    .maybeSingle();
+    .is('user_id', null);
 
   if (convError) {
     throw new Error(`Failed to look up conversation: ${convError.message}`);
   }
 
-  if (!conversation) {
+  const conversationIds = conversations?.map(({ id }) => id) ?? [];
+
+  if (conversationIds.length === 0) {
     return 0;
   }
 
   const { count, error: countError } = await supabaseAdmin
     .from('messages')
     .select('id', { count: 'exact', head: true })
-    .eq('conversation_id', conversation.id);
+    .in('conversation_id', conversationIds);
 
   if (countError) {
     throw new Error(`Failed to count messages: ${countError.message}`);
