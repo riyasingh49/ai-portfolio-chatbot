@@ -20,6 +20,11 @@ type ConversationSummary = {
 
 const EMAIL_DRAFT_MARKER = '__EMAIL_DRAFT__:';
 
+async function getAccessToken() {
+  const { data: { session } } = await supabaseClient.auth.getSession();
+  return session?.access_token ?? null;
+}
+
 export function useChat() {
   const [messages, setMessages] = useState<chatMessage[]>([]);
   const [isLoading, setIsLoading] = useState(false);
@@ -32,12 +37,15 @@ export function useChat() {
     const { data: { user } } = await supabaseClient.auth.getUser();
     if (!user) return;
 
-    const list = await listMyConversationsAction(user.id);
+    const accessToken = await getAccessToken();
+    if (!accessToken) return;
+
+    const list = await listMyConversationsAction(accessToken);
     setConversations(list);
 
     if (!activeConversationId && list.length > 0) {
       setActiveConversationId(list[0].id);
-      const history = await loadConversationAction(list[0].id);
+      const history = await loadConversationAction(list[0].id, accessToken);
       setMessages(history ?? []);
     }
   }, [activeConversationId]);
@@ -47,8 +55,11 @@ export function useChat() {
   }, [refreshConversationList]);
 
   const switchConversation = useCallback(async (conversationId: string) => {
+    const accessToken = await getAccessToken();
+    if (!accessToken) return;
+
     setActiveConversationId(conversationId);
-    const history = await loadConversationAction(conversationId);
+    const history = await loadConversationAction(conversationId, accessToken);
     setMessages(history ?? []);
   }, []);
 
@@ -63,14 +74,20 @@ export function useChat() {
       return;
     }
 
-    const newId = await startNewConversationAction(user.id);
+    const accessToken = await getAccessToken();
+    if (!accessToken) return;
+
+    const newId = await startNewConversationAction(accessToken);
     setActiveConversationId(newId);
     setMessages([]);
     await refreshConversationList();
   }, [refreshConversationList]);
 
   const deleteChat = useCallback(async (conversationId: string) => {
-    await deleteConversationAction(conversationId);
+    const accessToken = await getAccessToken();
+    if (!accessToken) return;
+
+    await deleteConversationAction(conversationId, accessToken);
 
     if (conversationId === activeConversationId) {
       setMessages([]);
@@ -97,27 +114,33 @@ export function useChat() {
     setGuestLimitReached(false);
 
     const sessionId = getOrCreateSessionId();
-    const { data: { user } } = await supabaseClient.auth.getUser();
-    const isAuthenticated = !!user;
+    const accessToken = await getAccessToken();
+    const isAuthenticated = !!accessToken;
 
     setMessages((prev) => [...prev, { role: 'user', content: question }]);
 
     const response = await fetch('/api/chat', {
       method: 'POST',
-      headers: { 'Content-Type': 'application/json' },
+      headers: {
+        'Content-Type': 'application/json',
+        ...(accessToken ? { Authorization: `Bearer ${accessToken}` } : {}),
+      },
       body: JSON.stringify({
         sessionId,
         question,
-        isAuthenticated,
         conversationId: isAuthenticated
           ? activeConversationId
           : activeGuestConversationId,
-        userId: user?.id ?? null,
       }),
     });
 
     if (response.status === 403) {
       setGuestLimitReached(true);
+      setIsLoading(false);
+      return;
+    }
+
+    if (!response.ok) {
       setIsLoading(false);
       return;
     }

@@ -2,12 +2,14 @@ import {
   getOrCreateSession,
   getGuestConversationForSession,
   getOrCreateConversationForUser,
+  getUserConversation,
   countMessagesForSession,
   updateConversationTitle,
 } from '@/db/conversations';
 
 import { getRecentMessage, saveMessage } from '@/db/messages';
 import { getChatResponseStream } from '@/lib/chat';
+import { getUserIdFromAccessToken } from '@/lib/server-auth';
 
 const GUEST_MESSAGE_LIMIT = 10;
 
@@ -21,10 +23,18 @@ export async function POST(request: Request) {
     const {
       sessionId,
       question,
-      isAuthenticated,
       conversationId,
-      userId,
     } = await request.json();
+
+    const authorization = request.headers.get('authorization');
+    const accessToken = authorization?.match(/^Bearer\s+(.+)$/i)?.[1];
+    const authenticatedUserId = accessToken
+      ? await getUserIdFromAccessToken(accessToken)
+      : null;
+
+    if (authorization && !authenticatedUserId) {
+      return Response.json({ error: 'UNAUTHORIZED' }, { status: 401 });
+    }
 
     // -----------------------------------------
     // Validate request
@@ -62,7 +72,7 @@ export async function POST(request: Request) {
     // Guest message limit
     // -----------------------------------------
 
-    if (!isAuthenticated) {
+    if (!authenticatedUserId) {
       const messageCount =
         await countMessagesForSession(sessionId);
 
@@ -87,24 +97,26 @@ export async function POST(request: Request) {
 
     let resolvedConversationId: string;
 
-    if (isAuthenticated) {
-      if (!userId) {
-        return new Response(
-          JSON.stringify({
-            error: 'USER_ID_REQUIRED',
-          }),
-          {
-            status: 400,
-            headers: {
-              'Content-Type': 'application/json',
-            },
-          }
+    if (authenticatedUserId) {
+      if (conversationId) {
+        const ownedConversationId = await getUserConversation(
+          conversationId,
+          authenticatedUserId
+        );
+
+        if (!ownedConversationId) {
+          return Response.json(
+            { error: 'CONVERSATION_NOT_FOUND' },
+            { status: 404 }
+          );
+        }
+
+        resolvedConversationId = ownedConversationId;
+      } else {
+        resolvedConversationId = await getOrCreateConversationForUser(
+          authenticatedUserId
         );
       }
-
-      resolvedConversationId =
-        conversationId ??
-        (await getOrCreateConversationForUser(userId));
     } else {
       const guestConversationId =
         conversationId

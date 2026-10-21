@@ -15,7 +15,7 @@ export function useAuthListener(onSignedIn: () => void) {
           hasLinkedRef.current = true;
 
           const sessionId = getOrCreateSessionId();
-          await linkGuestSessionAction(sessionId, session.user.id);
+          await linkGuestSessionAction(sessionId, session.access_token);
 
           onSignedIn();
         }

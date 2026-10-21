@@ -103,6 +103,25 @@ export async function getOrCreateConversationForUser(userId: string) {
   return createNewConversationForUser(userId);
 }
 
+// Confirms that a client-supplied conversation belongs to the authenticated user.
+export async function getUserConversation(
+  conversationId: string,
+  userId: string
+) {
+  const { data: conversation, error } = await supabaseAdmin
+    .from('conversations')
+    .select('id')
+    .eq('id', conversationId)
+    .eq('user_id', userId)
+    .maybeSingle();
+
+  if (error) {
+    throw new Error(`Failed to look up user conversation: ${error.message}`);
+  }
+
+  return conversation?.id as string | undefined;
+}
+
 // Always creates a brand new conversation thread for a user.
 // Used for the "New Chat" button.
 export async function createNewConversationForUser(userId: string) {
@@ -178,11 +197,17 @@ export async function countMessagesForSession(sessionId: string): Promise<number
 }
 
 // Deletes a conversation and all its messages.
-export async function deleteConversation(conversationId: string) {
+export async function deleteConversationForUser(conversationId: string, userId: string) {
+  const conversationIdForUser = await getUserConversation(conversationId, userId);
+
+  if (!conversationIdForUser) {
+    return false;
+  }
+
   const { error: messagesError } = await supabaseAdmin
     .from('messages')
     .delete()
-    .eq('conversation_id', conversationId);
+    .eq('conversation_id', conversationIdForUser);
 
   if (messagesError) {
     throw new Error(`Failed to delete messages: ${messagesError.message}`);
@@ -191,9 +216,12 @@ export async function deleteConversation(conversationId: string) {
   const { error: convError } = await supabaseAdmin
     .from('conversations')
     .delete()
-    .eq('id', conversationId);
+    .eq('id', conversationIdForUser)
+    .eq('user_id', userId);
 
   if (convError) {
     throw new Error(`Failed to delete conversation: ${convError.message}`);
   }
+
+  return true;
 }
