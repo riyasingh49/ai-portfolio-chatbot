@@ -12,6 +12,7 @@ export default function HomePage() {
     sendMessage,
     isLoading,
     guestLimitReached,
+    rateLimitMessage,
     onSignedIn,
     conversations,
     activeConversationId,
@@ -40,6 +41,7 @@ export default function HomePage() {
             sendMessage={sendMessage}
             isLoading={isLoading}
             guestLimitReached={guestLimitReached}
+            rateLimitMessage={rateLimitMessage}
             onSignedIn={onSignedIn}
             clearEmailDraft={clearEmailDraft}
           />

@@ -3,15 +3,13 @@ import {
   getGuestConversationForSession,
   getOrCreateConversationForUser,
   getUserConversation,
-  countMessagesForSession,
   updateConversationTitle,
 } from '@/db/conversations';
 
 import { getRecentMessage, saveMessage } from '@/db/messages';
 import { getChatResponseStream } from '@/lib/chat';
 import { getUserIdFromAccessToken } from '@/lib/server-auth';
-
-const GUEST_MESSAGE_LIMIT = 10;
+import { checkChatRateLimit } from '@/lib/server/chat-rate-limit';
 
 // Prefix used to mark an email-draft payload inside the otherwise plain-text
 // stream, so the frontend can tell "this chunk is a draft" apart from
@@ -69,29 +67,6 @@ export async function POST(request: Request) {
     }
 
     // -----------------------------------------
-    // Guest message limit
-    // -----------------------------------------
-
-    if (!authenticatedUserId) {
-      const messageCount =
-        await countMessagesForSession(sessionId);
-
-      if (messageCount >= GUEST_MESSAGE_LIMIT) {
-        return new Response(
-          JSON.stringify({
-            error: 'GUEST_LIMIT_REACHED',
-          }),
-          {
-            status: 403,
-            headers: {
-              'Content-Type': 'application/json',
-            },
-          }
-        );
-      }
-    }
-
-    // -----------------------------------------
     // Resolve conversation
     // -----------------------------------------
 
@@ -135,7 +110,38 @@ export async function POST(request: Request) {
 
       resolvedConversationId = guestConversationId;
     }
+    // -----------------------------------------
+    // Atomic rate limits and guest quotas
+    // -----------------------------------------
 
+    const rateLimit = await checkChatRateLimit({
+      request,
+      sessionId,
+      userId: authenticatedUserId,
+    });
+
+    if (!rateLimit.allowed) {
+      const headers: HeadersInit = {};
+
+      if (rateLimit.retryAfterSeconds) {
+        headers['Retry-After'] = String(
+          rateLimit.retryAfterSeconds
+        );
+      }
+      
+      return Response.json(
+        {
+          error: rateLimit.error,
+          ...(rateLimit.reason && {
+            reason: rateLimit.reason,
+          }),
+        },
+        {
+          status: rateLimit.status,
+          headers,
+        }
+      );
+    }
     // -----------------------------------------
     // Get recent conversation history
     // -----------------------------------------
