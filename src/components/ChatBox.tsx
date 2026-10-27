@@ -13,6 +13,7 @@ type ChatBoxProps = {
   guestLimitReached: boolean;
   onSignedIn: () => void;
   clearEmailDraft: (index: number) => void;
+  rateLimitMessage: string | null;
 };
 
 export function ChatBox({
@@ -20,13 +21,14 @@ export function ChatBox({
   sendMessage,
   isLoading,
   guestLimitReached,
+  rateLimitMessage,
   onSignedIn,
   clearEmailDraft,
 }: ChatBoxProps) {
   const [input, setInput] = useState("");
 
   const handleSend = () => {
-    
+
     const trimmed = input.trim();
 
     if (!trimmed || isLoading) return;
@@ -52,59 +54,60 @@ export function ChatBox({
           </p>
         )}
 
-{messages.map((message, index) => (
-  <div key={index}>
-    <div
-      className={`flex ${
-        message.role === "user" ? "justify-end" : "justify-start"
-      }`}
-    >
-      <span
-        className={`inline-block px-3 py-2 rounded-lg text-left max-w-[80%] ${
-          message.role === "user"
-            ? "bg-gray-600 text-white"
-            : "bg-gray-200 text-gray-900"
-        }`}
-      >
-        {message.role === "assistant" ? (
-          <div className="text-left">
-            <ReactMarkdown
-              components={{
-                p: ({ children }) => (
-                  <p className="mb-1 last:mb-0">{children}</p>
-                ),
-                strong: ({ children }) => (
-                  <strong className="font-semibold">{children}</strong>
-                ),
-                ul: ({ children }) => (
-                  <ul className="list-disc pl-5 mb-1">{children}</ul>
-                ),
-                li: ({ children }) => <li className="mb-0.5">{children}</li>,
-              }}
+        {messages.map((message, index) => (
+          <div key={index}>
+            <div
+              className={`flex ${message.role === "user" ? "justify-end" : "justify-start"
+                }`}
             >
-              {message.content.trim()}
-            </ReactMarkdown>
+              <span
+                className={`inline-block px-3 py-2 rounded-lg text-left max-w-[80%] ${message.role === "user"
+                    ? "bg-gray-600 text-white"
+                    : "bg-gray-200 text-gray-900"
+                  }`}
+              >
+                {message.role === "assistant" ? (
+                  <div className="text-left">
+                    <ReactMarkdown
+                      components={{
+                        p: ({ children }) => (
+                          <p className="mb-1 last:mb-0">{children}</p>
+                        ),
+                        strong: ({ children }) => (
+                          <strong className="font-semibold">{children}</strong>
+                        ),
+                        ul: ({ children }) => (
+                          <ul className="list-disc pl-5 mb-1">{children}</ul>
+                        ),
+                        li: ({ children }) => <li className="mb-0.5">{children}</li>,
+                      }}
+                    >
+                      {message.content.trim()}
+                    </ReactMarkdown>
+                  </div>
+                ) : (
+                  message.content
+                )}
+              </span>
+            </div>
+
+            {message.emailDraft && (
+              <div className="mt-2">
+                <EmailDraftCard
+                  draft={message.emailDraft}
+                  onDismiss={() => clearEmailDraft(index)}
+                />
+              </div>
+            )}
           </div>
-        ) : (
-          message.content
-        )}
-      </span>
-    </div>
+        ))}
 
-    {message.emailDraft && (
-      <div className="mt-2">
-        <EmailDraftCard
-          draft={message.emailDraft}
-          onDismiss={() => clearEmailDraft(index)}
-        />
-      </div>
-    )}
-  </div>
-))}
-
-       
-
-        {isLoading && <p className="text-gray-400 text-sm">Thinking...</p>}
+         {isLoading && <p className="text-gray-400 text-sm">Thinking...</p>}
+{rateLimitMessage && (
+  <p role="alert" className="text-red-600 text-sm">
+    {rateLimitMessage}
+  </p>
+)}
       </div>
 
       {/* Guest limit */}

@@ -29,6 +29,7 @@ export function useChat() {
   const [messages, setMessages] = useState<chatMessage[]>([]);
   const [isLoading, setIsLoading] = useState(false);
   const [guestLimitReached, setGuestLimitReached] = useState(false);
+  const [rateLimitMessage, setRateLimitMessage] = useState<string | null>(null);
   const [conversations, setConversations] = useState<ConversationSummary[]>([]);
   const [activeConversationId, setActiveConversationId] = useState<string | null>(null);
   const [activeGuestConversationId, setActiveGuestConversationId] = useState<string | null>(null);
@@ -112,7 +113,7 @@ export function useChat() {
   const sendMessage = useCallback(async (question: string) => {
     setIsLoading(true);
     setGuestLimitReached(false);
-
+    setRateLimitMessage(null);
     const sessionId = getOrCreateSessionId();
     const accessToken = await getAccessToken();
     const isAuthenticated = !!accessToken;
@@ -134,8 +135,17 @@ export function useChat() {
       }),
     });
 
+
     if (response.status === 403) {
       setGuestLimitReached(true);
+      setIsLoading(false);
+      return;
+    }
+
+    if (response.status === 429) {
+      setRateLimitMessage(
+        'You’re sending messages too quickly. Please wait a moment before trying again.'
+      );
       setIsLoading(false);
       return;
     }
@@ -144,6 +154,7 @@ export function useChat() {
       setIsLoading(false);
       return;
     }
+
 
     if (!response.body) {
       setIsLoading(false);
@@ -261,6 +272,7 @@ export function useChat() {
     sendMessage,
     isLoading,
     guestLimitReached,
+    rateLimitMessage,
     onSignedIn,
     conversations,
     activeConversationId,
