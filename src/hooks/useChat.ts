@@ -21,7 +21,10 @@ type ConversationSummary = {
 const EMAIL_DRAFT_MARKER = '__EMAIL_DRAFT__:';
 
 async function getAccessToken() {
-  const { data: { session } } = await supabaseClient.auth.getSession();
+  const {
+    data: { session },
+  } = await supabaseClient.auth.getSession();
+
   return session?.access_token ?? null;
 }
 
@@ -33,9 +36,13 @@ export function useChat() {
   const [conversations, setConversations] = useState<ConversationSummary[]>([]);
   const [activeConversationId, setActiveConversationId] = useState<string | null>(null);
   const [activeGuestConversationId, setActiveGuestConversationId] = useState<string | null>(null);
+  const [activeGuestSessionId, setActiveGuestSessionId] = useState<string | null>(null);
 
   const refreshConversationList = useCallback(async () => {
-    const { data: { user } } = await supabaseClient.auth.getUser();
+    const {
+      data: { user },
+    } = await supabaseClient.auth.getUser();
+
     if (!user) return;
 
     const accessToken = await getAccessToken();
@@ -65,13 +72,19 @@ export function useChat() {
   }, []);
 
   const startNewChat = useCallback(async () => {
-    const { data: { user } } = await supabaseClient.auth.getUser();
+    const {
+      data: { user },
+    } = await supabaseClient.auth.getUser();
 
     if (!user) {
-      const newId = await startNewGuestConversationAction(getOrCreateSessionId());
+      const sessionId = getOrCreateSessionId();
+      const newId = await startNewGuestConversationAction(sessionId);
+
+      setActiveGuestSessionId(sessionId);
       setActiveGuestConversationId(newId);
       setMessages([]);
       setGuestLimitReached(false);
+      setRateLimitMessage(null);
       return;
     }
 
@@ -98,9 +111,6 @@ export function useChat() {
     await refreshConversationList();
   }, [activeConversationId, refreshConversationList]);
 
-  // Clears the email draft attached to one specific message, by index —
-  // used by that message's "Discard" button. Since drafts now live on
-  // the message itself, clearing one never affects any other message.
   const clearEmailDraft = useCallback((messageIndex: number) => {
     setMessages((prev) => {
       const updated = [...prev];
@@ -114,153 +124,192 @@ export function useChat() {
     setIsLoading(true);
     setGuestLimitReached(false);
     setRateLimitMessage(null);
-    const sessionId = getOrCreateSessionId();
-    const accessToken = await getAccessToken();
-    const isAuthenticated = !!accessToken;
 
-    setMessages((prev) => [...prev, { role: 'user', content: question }]);
+    try {
+      const sessionId = getOrCreateSessionId();
+      const accessToken = await getAccessToken();
+      const isAuthenticated = !!accessToken;
 
-    const response = await fetch('/api/chat', {
-      method: 'POST',
-      headers: {
-        'Content-Type': 'application/json',
-        ...(accessToken ? { Authorization: `Bearer ${accessToken}` } : {}),
-      },
-      body: JSON.stringify({
-        sessionId,
-        question,
-        conversationId: isAuthenticated
-          ? activeConversationId
-          : activeGuestConversationId,
-      }),
-    });
+      // If localStorage contains a different guest session, do not send
+      // the conversation ID belonging to the previous session.
+      const guestConversationId =
+        activeGuestSessionId === sessionId
+          ? activeGuestConversationId
+          : null;
 
-
-    if (response.status === 403) {
-      setGuestLimitReached(true);
-      setIsLoading(false);
-      return;
-    }
-
-    if (response.status === 429) {
-      setRateLimitMessage(
-        'You’re sending messages too quickly. Please wait a moment before trying again.'
-      );
-      setIsLoading(false);
-      return;
-    }
-
-    if (!response.ok) {
-      setIsLoading(false);
-      return;
-    }
-
-
-    if (!response.body) {
-      setIsLoading(false);
-      return;
-    }
-
-    const newConversationId = response.headers.get('X-Conversation-Id');
-    if (newConversationId) {
-      if (isAuthenticated && newConversationId !== activeConversationId) {
-        setActiveConversationId(newConversationId);
+      // Keep the session associated with the next guest conversation.
+      if (!isAuthenticated && activeGuestSessionId !== sessionId) {
+        setActiveGuestSessionId(sessionId);
+        setActiveGuestConversationId(null);
       }
 
-      if (!isAuthenticated && newConversationId !== activeGuestConversationId) {
-        setActiveGuestConversationId(newConversationId);
-      }
-    }
+      setMessages((prev) => [
+        ...prev,
+        { role: 'user', content: question },
+      ]);
 
-    setMessages((prev) => [...prev, { role: 'assistant', content: '' }]);
-
-    const reader = response.body.getReader();
-    const decoder = new TextDecoder();
-
-    let buffer = '';
-    let markerFound = false;
-    let draftJson = '';
-
-    const appendToAssistant = (content: string) => {
-      if (!content) return;
-
-      setMessages((prev) => {
-        const updated = [...prev];
-        const last = updated[updated.length - 1];
-        updated[updated.length - 1] = {
-          ...last,
-          content: last.content + content,
-        };
-        return updated;
+      const response = await fetch('/api/chat', {
+        method: 'POST',
+        headers: {
+          'Content-Type': 'application/json',
+          ...(accessToken ? { Authorization: `Bearer ${accessToken}` } : {}),
+        },
+        body: JSON.stringify({
+          sessionId,
+          question,
+          conversationId: isAuthenticated
+            ? activeConversationId
+            : guestConversationId,
+        }),
       });
-    };
 
-    const processBuffer = (isFinalChunk = false) => {
-      if (markerFound) {
-        draftJson += buffer;
-        buffer = '';
+      if (response.status === 403) {
+        setGuestLimitReached(true);
         return;
       }
 
-      const markerIndex = buffer.indexOf(EMAIL_DRAFT_MARKER);
-
-      if (markerIndex !== -1) {
-        appendToAssistant(buffer.slice(0, markerIndex));
-        markerFound = true;
-        draftJson = buffer.slice(markerIndex + EMAIL_DRAFT_MARKER.length);
-        buffer = '';
+      if (response.status === 429) {
+        setRateLimitMessage(
+          'You’re sending messages too quickly. Please wait a moment before trying again.'
+        );
         return;
       }
 
-      // While the stream is still open, retain only enough text to detect a
-      // marker that may span two network chunks. Once it has ended, this
-      // remaining text is normal answer content and must be displayed.
-      const flushLength = isFinalChunk
-        ? buffer.length
-        : Math.max(0, buffer.length - EMAIL_DRAFT_MARKER.length);
-      appendToAssistant(buffer.slice(0, flushLength));
-      buffer = buffer.slice(flushLength);
-    };
+      if (!response.ok) {
+        console.error(
+          'Chat request failed:',
+          response.status,
+          await response.text()
+        );
+        setRateLimitMessage('Unable to get a response. Please try again.');
+        return;
+      }
 
-    while (true) {
-      const { done, value } = await reader.read();
+      if (!response.body) {
+        setRateLimitMessage('The server returned an empty response. Please try again.');
+        return;
+      }
 
-      if (done) {
-        // Flush TextDecoder's internal state, then display the marker-sized
-        // tail retained by processBuffer. Previously this tail was never
-        // rendered, truncating every normal streamed response.
-        buffer += decoder.decode();
-        processBuffer(true);
+      const newConversationId = response.headers.get('X-Conversation-Id');
 
-        // Stream finished — if a draft was being collected, attach it
-        // to the assistant message we've been building, not to any
-        // separate global state, so it stays anchored to this exact turn.
-        if (markerFound && draftJson) {
-          try {
-            const draft = JSON.parse(draftJson);
-            setMessages((prev) => {
-              const updated = [...prev];
-              const last = updated[updated.length - 1];
-              updated[updated.length - 1] = { ...last, emailDraft: draft };
-              return updated;
-            });
-          } catch {
-            // Malformed draft JSON — ignore rather than crash the UI.
-          }
+      if (newConversationId) {
+        if (isAuthenticated && newConversationId !== activeConversationId) {
+          setActiveConversationId(newConversationId);
         }
-        break;
+
+        if (!isAuthenticated) {
+          setActiveGuestSessionId(sessionId);
+          setActiveGuestConversationId(newConversationId);
+        }
       }
 
-      buffer += decoder.decode(value, { stream: true });
-      processBuffer();
-    }
+      setMessages((prev) => [
+        ...prev,
+        { role: 'assistant', content: '' },
+      ]);
 
-    setIsLoading(false);
+      const reader = response.body.getReader();
+      const decoder = new TextDecoder();
 
-    if (isAuthenticated) {
-      await refreshConversationList();
+      let buffer = '';
+      let markerFound = false;
+      let draftJson = '';
+
+      const appendToAssistant = (content: string) => {
+        if (!content) return;
+
+        setMessages((prev) => {
+          const updated = [...prev];
+          const lastIndex = updated.length - 1;
+          const last = updated[lastIndex];
+
+          updated[lastIndex] = {
+            ...last,
+            content: last.content + content,
+          };
+
+          return updated;
+        });
+      };
+
+      const processBuffer = (isFinalChunk = false) => {
+        if (markerFound) {
+          draftJson += buffer;
+          buffer = '';
+          return;
+        }
+
+        const markerIndex = buffer.indexOf(EMAIL_DRAFT_MARKER);
+
+        if (markerIndex !== -1) {
+          appendToAssistant(buffer.slice(0, markerIndex));
+          markerFound = true;
+          draftJson = buffer.slice(
+            markerIndex + EMAIL_DRAFT_MARKER.length
+          );
+          buffer = '';
+          return;
+        }
+
+        const flushLength = isFinalChunk
+          ? buffer.length
+          : Math.max(0, buffer.length - EMAIL_DRAFT_MARKER.length);
+
+        appendToAssistant(buffer.slice(0, flushLength));
+        buffer = buffer.slice(flushLength);
+      };
+
+      while (true) {
+        const { done, value } = await reader.read();
+
+        if (done) {
+          buffer += decoder.decode();
+          processBuffer(true);
+
+          if (markerFound && draftJson) {
+            try {
+              const draft = JSON.parse(draftJson);
+
+              setMessages((prev) => {
+                const updated = [...prev];
+                const lastIndex = updated.length - 1;
+
+                if (lastIndex >= 0) {
+                  updated[lastIndex] = {
+                    ...updated[lastIndex],
+                    emailDraft: draft,
+                  };
+                }
+
+                return updated;
+              });
+            } catch {
+              // Ignore malformed email-draft JSON.
+            }
+          }
+
+          break;
+        }
+
+        buffer += decoder.decode(value, { stream: true });
+        processBuffer();
+      }
+
+      if (isAuthenticated) {
+        await refreshConversationList();
+      }
+    } catch (error) {
+      console.error('Failed to send chat message:', error);
+      setRateLimitMessage('Something went wrong. Please try again.');
+    } finally {
+      setIsLoading(false);
     }
-  }, [activeConversationId, activeGuestConversationId, refreshConversationList]);
+  }, [
+    activeConversationId,
+    activeGuestConversationId,
+    activeGuestSessionId,
+    refreshConversationList,
+  ]);
 
   const onSignedIn = useCallback(async () => {
     setGuestLimitReached(false);
