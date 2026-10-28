@@ -1,99 +1,109 @@
-# AI Portfolio Chatbot
+# AI Portfolio Assistant
 
-A chatbot that answers questions about my background, skills, projects and experience, so a recruiter or hiring manager can simply ask instead of scanning a resume. It is built on a Retrieval-Augmented Generation (RAG) pipeline over a curated knowledge base, with streaming responses, user accounts and saved conversations.
+An AI-powered portfolio chatbot that answers questions about my professional background, skills, projects, and experience using Retrieval-Augmented Generation (RAG).
 
-**Live demo:** https://ai-portfolio-chatbot-65kk.vercel.app
+The application retrieves relevant information from a structured knowledge base and uses an LLM to generate context-grounded responses. It also supports streaming replies, user authentication, and persistent conversations.
 
----
+**Live Demo:** [Try the AI Portfolio Assistant](https://ai-portfolio-chatbot-65kk.vercel.app)
 
-## What It Does
+**Source Code:** [GitHub Repository](https://github.com/riyasingh49/ai-portfolio-chatbot)
 
-- **Answers questions about me** — retrieves the most relevant facts from my knowledge base and uses them to ground each answer; the model is instructed to say so when something isn't covered
-- **Streams responses** — answers appear as they are generated
-- **Saves conversations** — multiple chat threads per user, switchable and deletable, with full history
-- **Guest access** — visitors can try it without an account (limited to 10 questions); signing in links their guest chats to their account
-- **Authentication** — email/password, Google sign-in and password reset
-- **Drafts emails** — ask it to write an email and it returns an editable draft you can open in your email app
+## Features
+
+- **RAG-based question answering:** Retrieves relevant information from a vector database before generating responses.
+- **Context-grounded responses:** Designed to answer questions using information available in the portfolio knowledge base.
+- **Streaming responses:** Displays generated answers incrementally.
+- **Authentication:** Supports email/password authentication, Google sign-in, and password recovery.
+- **Conversation management:** Allows authenticated users to create, access, and switch between conversations.
+- **Guest access:** Allows visitors to try the chatbot without creating an account, subject to usage restrictions.
+- **Email drafting:** Helps visitors draft professional emails using relevant portfolio information.
+- **Responsive interface:** Built with Next.js, React, TypeScript, and Tailwind CSS.
 
 ## Tech Stack
 
-| Layer | Technology |
+| Category | Technologies |
 |---|---|
-| Framework | Next.js 16 (App Router), React 19, TypeScript |
-| Styling | Tailwind CSS 4 |
-| Embeddings | Cloudflare Workers AI (`bge-small-en-v1.5`, 384 dimensions) |
-| Vector search | Supabase Postgres + `pgvector` |
-| Auth & storage | Supabase Auth and Postgres |
-| LLM | Groq API (`openai/gpt-oss-20b`), streaming, with tool calling |
-| Hosting | Vercel |
+| Frontend | Next.js, React, TypeScript, Tailwind CSS |
+| Database | Supabase PostgreSQL |
+| Vector Search | pgvector |
+| Embeddings | Cloudflare Workers AI — `bge-small-en-v1.5` |
+| Language Model | Groq — `openai/gpt-oss-20b` |
+| Authentication | Supabase Auth |
+| Deployment | Vercel |
+| Version Control | Git, GitHub |
 
-## Architecture
+## Architecture Overview
 
-```
-User question
-   │
-   ▼
-Frontend (React hook) ── question + session / user context
-   │
-   ▼
-POST /api/chat  (Next.js Route Handler)
-   ├─► Guest limit check
-   ├─► Resolve or create the conversation
-   ├─► Load recent conversation history
-   │
-   ▼
-Embed the question  (Cloudflare Workers AI)
-   │
-   ▼
-Semantic search  (Supabase pgvector) ── top matching knowledge entries
-   │
-   ▼
-Groq LLM ── system prompt + retrieved context + history + question
-   │
-   ├─► text ───────────────► streamed to the browser token by token
-   └─► draft_email call ───► rendered as an editable email card
-   │
-   ▼
-Save the exchange to Postgres and title the conversation
+The application uses a Retrieval-Augmented Generation pipeline to generate responses from portfolio-specific information.
+
+```mermaid
+flowchart TD
+    A[User Message] --> B[Next.js Frontend]
+    B --> C[Chat API]
+    C --> D[Generate Query Embedding]
+    D --> E[Supabase pgvector Search]
+    E --> F[Retrieve Relevant Context]
+    F --> G[Groq LLM]
+    G --> H[Stream Response]
+    H --> I[Frontend Chat UI]
+    C --> J[Persist Conversation]
+    J --> K[Supabase PostgreSQL]
 ```
 
-### The RAG pipeline
+### Request Flow
 
-1. **Knowledge base** — my professional information lives in `data/knowledge_base.json` as short, self-contained entries.
-2. **Embedding** — a script embeds each entry and stores the vector in Supabase (`pgvector`).
-3. **Retrieval** — each question is embedded with the same model and matched by similarity; the top matches are passed to the LLM as context.
-4. **Generation** — Groq streams the answer back, guided by a system prompt that keeps responses on topic and based on the retrieved context.
+1. The user submits a message through the chat interface.
+2. The API processes the request and prepares an embedding for semantic retrieval.
+3. Supabase pgvector searches the knowledge base for relevant information.
+4. Retrieved context is included in the prompt sent to the language model.
+5. The model generates a response that is streamed to the frontend.
+6. Conversation messages are persisted where applicable.
 
-### Code organization
+## Key Technical Decisions
 
-- `src/app/api/chat/route.ts` — the streaming chat endpoint
-- `src/lib/` — embeddings, retrieval, LLM calls, tool definitions, Supabase clients, auth helpers
-- `src/db/` — database queries, one file per table
-- `src/actions/` — Server Actions for non-streaming work (conversations, guest-to-user linking)
-- `src/hooks/` — `useChat` (streaming and state) and `useAuthListener`
-- `src/components/` — chat UI, sidebar, email draft card, auth forms
-- `scripts/embed-knowledge.ts` — generates and stores embeddings
+### Retrieval-Augmented Generation
 
-## Design Decisions
+RAG allows the chatbot to retrieve relevant portfolio information at query time instead of relying entirely on information learned during model training. This makes the knowledge base easier to update independently of the language model.
 
-- **RAG over fine-tuning** — the data is a small set of facts that changes over time; with RAG, updating an answer means editing a JSON entry and re-running the embed script.
-- **Route Handler for chat, Server Actions elsewhere** — Server Actions return one value on completion and can't stream, so the chat endpoint is a Route Handler built on `ReadableStream`; everything else uses Server Actions.
-- **Exact vector search** — at this dataset size (~30 entries), exact search is accurate and fast, so no approximate index is used.
-- **Hosted embeddings** — embedding generation is isolated behind one function and calls a hosted API, which keeps it compatible with Vercel's serverless runtime.
+### Vector Search with pgvector
 
-## Running Locally
+Supabase PostgreSQL and pgvector store embeddings and support similarity-based retrieval. This keeps the knowledge base and application data within the same database platform.
 
-Requires Node.js 20.9+, a Supabase project (with `pgvector`), a Groq API key and a Cloudflare Workers AI token.
+### Hosted Embedding and LLM Services
+
+Cloudflare Workers AI generates embeddings, while Groq provides language-model inference. Using hosted inference services avoids the need to run a large language model locally.
+
+### Streaming Responses
+
+The chat API streams generated text to the frontend, improving the perceived responsiveness of the conversation.
+
+## Getting Started
+
+### Prerequisites
+
+- Node.js 20.9 or later
+- A Supabase project with the required database schema and pgvector support
+- A Groq API key
+- Cloudflare account credentials with access to Workers AI
+
+### 1. Clone the Repository
 
 ```bash
 git clone https://github.com/riyasingh49/ai-portfolio-chatbot.git
 cd ai-portfolio-chatbot
+```
+
+### 2. Install Dependencies
+
+```bash
 npm install
 ```
 
-Create `.env.local`:
+### 3. Configure Environment Variables
 
-```
+Create a `.env.local` file in the project root:
+
+```env
 NEXT_PUBLIC_SUPABASE_URL=
 NEXT_PUBLIC_ANON_KEY=
 SUPABASE_SERVICE_ROLE_KEY=
@@ -102,17 +112,51 @@ CLOUDFLARE_ACCOUNT_ID=
 CLOUDFLARE_API_TOKEN=
 ```
 
-Embed the knowledge base, then start the app:
+Add the appropriate values from your service dashboards. Keep secret values private, and never commit `.env.local` or service-role credentials to GitHub.
+
+### 4. Prepare the Knowledge Base
+
+Configure the required database tables, vector-search function, and indexes in Supabase. Add the portfolio information to the knowledge-base source file, then run the embedding script:
 
 ```bash
 npx tsx --env-file=.env.local scripts/embed-knowledge.ts
+```
+
+This step populates the vector database with embeddings for retrieval.
+
+### 5. Start the Development Server
+
+```bash
 npm run dev
 ```
 
-## About
+Open [http://localhost:3000](http://localhost:3000) in your browser.
 
-Built by **Riya Singh** as a personal project to explore RAG, streaming LLM responses and full-stack authentication.
+## Project Structure
+
+The project is organized around the chat interface, API routes, reusable components, data access, and supporting utilities.
+
+```text
+src/
+├── app/          # Application pages and API routes
+├── components/   # Reusable UI components
+├── hooks/        # Client-side chat and state logic
+├── lib/          # Shared utilities and integrations
+├── db/           # Database-related code
+└── actions/      # Server actions
+scripts/
+└── embed-knowledge.ts
+```
+
+*This is a high-level overview; individual modules may vary as the project evolves.*
+
+## Future Improvements
+
+- Evaluate retrieval quality using a representative set of questions.
+- Improve relevance through knowledge-base refinement and retrieval tuning.
+- Add automated tests for critical chat, authentication, and conversation workflows.
+- Improve monitoring and error handling for external service failures.
 
 ## License
 
-Personal project — not licensed for reuse.
+This is a personal portfolio project intended to demonstrate my development skills. Contact the repository owner before reusing substantial portions of the implementation.
