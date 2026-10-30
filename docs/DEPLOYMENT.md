@@ -2,132 +2,145 @@
 
 ## Overview
 
-The AI Portfolio Assistant is deployed using Vercel. Supabase provides the database and authentication services, while Groq and Cloudflare Workers AI provide the language-model and embedding capabilities.
+The AI Portfolio Assistant is deployed using Vercel and built with Next.js.
+
+The application integrates with external services for authentication, data storage, embedding generation, and AI-powered response generation.
+
+This guide explains the deployment process and configuration requirements.
+
+## Technology
+
+- **Framework:** Next.js
+- **Language:** TypeScript
+- **Hosting:** Vercel
+- **Authentication and Backend Services:** Supabase
+- **Embedding Provider:** Cloudflare Workers AI
+- **Language Model Provider:** Groq
+- **Version Control:** GitHub
 
 ## Prerequisites
 
-Before deploying, ensure you have:
+Before deploying the application, ensure you have:
 
-- A GitHub account with access to the project repository.
+- A GitHub account.
 - A Vercel account.
 - A Supabase project.
+- Cloudflare Workers AI access.
 - A Groq API key.
-- Cloudflare account credentials for Workers AI.
+- The project source code available in a GitHub repository.
 
-## 1. Clone the Repository
+## Environment Configuration
 
-```bash
-git clone https://github.com/riyasingh49/ai-portfolio-chatbot.git
+The application requires environment variables to connect to its external services.
 
-cd ai-portfolio-chatbot
-```
+Configure the following categories of variables in your deployment environment:
 
-## 2. Install Dependencies
-
-```bash
-npm install
-```
-
-## 3. Configure Environment Variables
-
-Create a `.env.local` file in the project root.
-
-Configure the following variables:
-
-| Variable | Purpose |
+| Service | Configuration |
 |---|---|
-| `NEXT_PUBLIC_SUPABASE_URL` | Supabase project URL |
-| `NEXT_PUBLIC_ANON_KEY` | Supabase public/anonymous key |
-| `SUPABASE_SERVICE_ROLE_KEY` | Server-side privileged Supabase key |
-| `GROQ_API_KEY` | Groq API authentication |
-| `CLOUDFLARE_ACCOUNT_ID` | Cloudflare account identifier |
-| `CLOUDFLARE_API_TOKEN` | Cloudflare Workers AI API token |
+| Supabase | Project URL and public client key |
+| Supabase Admin | Server-side service-role credentials |
+| Cloudflare Workers AI | Account configuration and API credentials |
+| Groq | API key for language-model access |
 
-Use the actual variable names referenced by your source code. Never commit `.env.local` or expose secret credentials in client-side code.
+Use the variable names referenced by the application's source code when configuring Vercel.
 
-## 4. Prepare Supabase
+**Important:**
+- Never commit `.env.local` or other secret files to GitHub.
+- Never expose service-role credentials or provider API keys in frontend code.
+- Use Vercel environment variables for production configuration.
+- Keep development and production credentials separate.
 
-Ensure your Supabase project has the required:
+## Deploying to Vercel
 
-- PostgreSQL tables.
-- pgvector extension and vector-search configuration.
-- Database functions used by the application.
-- Authentication providers and redirect URLs.
-- Appropriate Row Level Security policies.
+### 1. Push the Project to GitHub
 
-The database schema and SQL setup should be maintained separately and documented in [DATABASE.md](./DATABASE.md).
+Ensure the project is committed and pushed to the intended GitHub branch.
 
-## 5. Prepare the Knowledge Base
+### 2. Import the Repository
 
-The source knowledge is stored in:
-
-```text
-data/knowledge_base.json
-```
-
-The embedding script is:
-
-```text
-scripts/embed-knowledge.ts
-```
-
-Run the ingestion script when the knowledge base needs to be populated or updated:
-
-```bash
-npx tsx --env-file=.env.local scripts/embed-knowledge.ts
-```
-
-Ensure the required environment variables are configured before running it.
-
-## 6. Run Locally
-
-Start the development server:
-
-```bash
-npm run dev
-```
-
-Open:
-
-```text
-http://localhost:3000
-```
-
-## 7. Deploy to Vercel
-
-1. Push the project repository to GitHub.
-2. Sign in to Vercel.
+1. Sign in to Vercel.
+2. Select **Add New → Project**.
 3. Import the GitHub repository.
-4. Configure the required environment variables in Vercel.
-5. Deploy the application.
-6. Verify the deployment and application functionality.
+4. Allow Vercel to detect the Next.js framework.
 
-## 8. Production Verification
+### 3. Configure Environment Variables
 
-After deployment, verify:
+Add the required environment variables in the project's Vercel settings.
 
-- The application loads successfully.
-- Authentication flows work correctly.
-- Guest access behaves as expected.
-- Chat responses are generated successfully.
-- Knowledge retrieval returns relevant information.
-- Conversation history works correctly.
-- Email drafting behaves as expected.
+Ensure that all required variables are configured for the intended deployment environment.
 
-If production behavior differs from local behavior, compare environment variables, database contents, deployed code, and service configuration.
+### 4. Deploy the Application
 
-## Security Checklist
+Start the deployment through Vercel.
 
-- Never commit `.env.local`.
-- Never expose service-role credentials in browser code.
-- Store production secrets in Vercel environment variables.
-- Restrict database access through appropriate authorization and RLS policies.
-- Keep API credentials out of logs and error messages.
+Vercel installs dependencies, builds the Next.js application, and deploys the resulting application.
 
-## Related Documentation
+### 5. Verify the Deployment
 
-- [Architecture](./ARCHITECTURE.md)
-- [RAG Pipeline](./RAG_PIPELINE.md)
-- [Database Design](./DATABASE.md)
-- [Authentication](./AUTHENTICATION.md)
-- [Rate Limiting](./RATE_LIMITING.md)
+After deployment:
+
+- Open the deployed application.
+- Verify that the homepage loads correctly.
+- Test guest chat functionality.
+- Test email/password authentication.
+- Test Google OAuth.
+- Verify conversation history.
+- Verify AI-generated responses.
+- Test the email-drafting feature.
+- Check deployment logs for runtime errors.
+
+## Production Checklist
+
+Before making the application publicly available, verify the following:
+
+- [ ] All required environment variables are configured.
+- [ ] No secrets are committed to the repository.
+- [ ] Production authentication settings are configured.
+- [ ] OAuth redirect URLs point to the correct deployment domain.
+- [ ] External AI services are accessible.
+- [ ] Chat requests are processed successfully.
+- [ ] Streaming responses work correctly.
+- [ ] Guest and authenticated sessions behave as expected.
+- [ ] Rate limiting works correctly.
+- [ ] Conversation history is persisted correctly.
+- [ ] Production logs do not expose sensitive user information.
+
+## Troubleshooting
+
+### Application Builds but AI Responses Fail
+
+Possible causes:
+
+- Missing or incorrectly configured provider credentials.
+- Incorrect environment-variable values.
+- External service availability issues.
+- Runtime configuration differences between local and production environments.
+
+Check the Vercel runtime logs and verify the required service configuration.
+
+### Authentication Does Not Work
+
+Check:
+
+- Supabase authentication settings.
+- OAuth provider configuration.
+- Allowed redirect URLs.
+- Production environment variables.
+- Authentication callback behavior.
+
+### Chat Works Locally but Fails on Vercel
+
+Local and production environments may differ.
+
+Verify that:
+
+- All required environment variables are configured in Vercel.
+- Server-side credentials are available at runtime.
+- External API requests are successful.
+- Production logs do not contain runtime or network errors.
+
+## Summary
+
+The application uses Vercel for deployment and integrates with Supabase, Cloudflare Workers AI, and Groq for its backend and AI capabilities.
+
+Correct environment configuration and production verification are essential for reliable deployment.
