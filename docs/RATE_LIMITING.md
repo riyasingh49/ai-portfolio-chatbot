@@ -1,146 +1,91 @@
-# Deployment Guide
+# Rate Limiting
 
 ## Overview
 
-The AI Portfolio Assistant is deployed using Vercel and built with Next.js.
+The AI Portfolio Assistant implements server-side rate limiting to control chat usage and protect application resources.
 
-The application integrates with external services for authentication, data storage, embedding generation, and AI-powered response generation.
+Rate limiting is applied before the retrieval and AI-generation stages of a chat request.
 
-This guide explains the deployment process and configuration requirements.
+The application uses Supabase-backed request tracking to enforce usage restrictions across guest sessions and authenticated users.
 
-## Technology
+## Rate-Limiting Scope
 
-- **Framework:** Next.js
-- **Language:** TypeScript
-- **Hosting:** Vercel
-- **Authentication and Backend Services:** Supabase
-- **Embedding Provider:** Cloudflare Workers AI
-- **Language Model Provider:** Groq
-- **Version Control:** GitHub
+The application considers different identifiers when evaluating chat requests:
 
-## Prerequisites
+- **Guest session:** Controls usage associated with an individual guest session.
+- **IP address:** Helps prevent repeated requests from the same network address.
+- **Authenticated user:** Controls usage associated with a signed-in account.
 
-Before deploying the application, ensure you have:
+These checks help reduce excessive requests and discourage attempts to bypass guest usage restrictions.
 
-- A GitHub account.
-- A Vercel account.
-- A Supabase project.
-- Cloudflare Workers AI access.
-- A Groq API key.
-- The project source code available in a GitHub repository.
+## Request Validation Flow
 
-## Environment Configuration
+When a chat request reaches the backend:
 
-The application requires environment variables to connect to its external services.
+1. The API validates the incoming request.
+2. The server identifies the user's session and authentication status.
+3. The client IP address is extracted from the request headers.
+4. The server performs the rate-limit check.
+5. If the request is allowed, processing continues.
+6. If the request exceeds an applicable limit, the API returns an appropriate error response.
 
-Configure the following categories of variables in your deployment environment:
+Rate-limit checks are performed before conversation-history retrieval, knowledge-base retrieval, and language-model generation.
 
-| Service | Configuration |
+## Response Handling
+
+The application uses different HTTP status codes depending on the rejection reason.
+
+| HTTP Status | Purpose |
 |---|---|
-| Supabase | Project URL and public client key |
-| Supabase Admin | Server-side service-role credentials |
-| Cloudflare Workers AI | Account configuration and API credentials |
-| Groq | API key for language-model access |
+| `403 Forbidden` | Guest usage limit reached |
+| `429 Too Many Requests` | Session, IP, or authenticated-user rate limit reached |
+| `503 Service Unavailable` | Rate-limit verification could not be completed |
+| `400 Bad Request` | Request rejected for another validation reason |
 
-Use the variable names referenced by the application's source code when configuring Vercel.
+For requests rejected due to rate limiting, the application can provide a `Retry-After` response header indicating when the client may retry.
 
-**Important:**
-- Never commit `.env.local` or other secret files to GitHub.
-- Never expose service-role credentials or provider API keys in frontend code.
-- Use Vercel environment variables for production configuration.
-- Keep development and production credentials separate.
+## Guest Usage Restrictions
 
-## Deploying to Vercel
+Guest users are subject to additional usage restrictions.
 
-### 1. Push the Project to GitHub
+The application checks both session-level and IP-based limits to discourage repeated anonymous requests.
 
-Ensure the project is committed and pushed to the intended GitHub branch.
+When a guest usage limit is reached, the API returns a response indicating that the guest limit has been reached.
 
-### 2. Import the Repository
+## Authenticated User Restrictions
 
-1. Sign in to Vercel.
-2. Select **Add New → Project**.
-3. Import the GitHub repository.
-4. Allow Vercel to detect the Next.js framework.
+Signing in does not remove all usage restrictions.
 
-### 3. Configure Environment Variables
+Authenticated requests are also checked against applicable user, session, and IP-based limits.
 
-Add the required environment variables in the project's Vercel settings.
+This helps maintain controlled usage across the application.
 
-Ensure that all required variables are configured for the intended deployment environment.
+## Error Handling
 
-### 4. Deploy the Application
+The application handles rate-limiting failures explicitly.
 
-Start the deployment through Vercel.
+Examples include:
 
-Vercel installs dependencies, builds the Next.js application, and deploys the resulting application.
+- Guest session usage limit reached.
+- Guest IP usage limit reached.
+- Session request limit reached.
+- Authenticated user request limit reached.
+- IP request limit reached.
+- Client IP unavailable.
+- Rate-limit verification failure.
 
-### 5. Verify the Deployment
+If rate-limit verification fails, the application does not proceed with expensive retrieval and AI-generation operations.
 
-After deployment:
+## Security Considerations
 
-- Open the deployed application.
-- Verify that the homepage loads correctly.
-- Test guest chat functionality.
-- Test email/password authentication.
-- Test Google OAuth.
-- Verify conversation history.
-- Verify AI-generated responses.
-- Test the email-drafting feature.
-- Check deployment logs for runtime errors.
-
-## Production Checklist
-
-Before making the application publicly available, verify the following:
-
-- [ ] All required environment variables are configured.
-- [ ] No secrets are committed to the repository.
-- [ ] Production authentication settings are configured.
-- [ ] OAuth redirect URLs point to the correct deployment domain.
-- [ ] External AI services are accessible.
-- [ ] Chat requests are processed successfully.
-- [ ] Streaming responses work correctly.
-- [ ] Guest and authenticated sessions behave as expected.
-- [ ] Rate limiting works correctly.
-- [ ] Conversation history is persisted correctly.
-- [ ] Production logs do not expose sensitive user information.
-
-## Troubleshooting
-
-### Application Builds but AI Responses Fail
-
-Possible causes:
-
-- Missing or incorrectly configured provider credentials.
-- Incorrect environment-variable values.
-- External service availability issues.
-- Runtime configuration differences between local and production environments.
-
-Check the Vercel runtime logs and verify the required service configuration.
-
-### Authentication Does Not Work
-
-Check:
-
-- Supabase authentication settings.
-- OAuth provider configuration.
-- Allowed redirect URLs.
-- Production environment variables.
-- Authentication callback behavior.
-
-### Chat Works Locally but Fails on Vercel
-
-Local and production environments may differ.
-
-Verify that:
-
-- All required environment variables are configured in Vercel.
-- Server-side credentials are available at runtime.
-- External API requests are successful.
-- Production logs do not contain runtime or network errors.
+- Rate-limit checks are performed server-side.
+- Request tracking is handled through managed backend services.
+- Client IP extraction depends on trusted deployment proxy headers.
+- Proxy headers should only be trusted when the deployment environment prevents clients from manipulating them.
+- Rate-limit configuration should be reviewed before changing guest or authenticated-user access policies.
 
 ## Summary
 
-The application uses Vercel for deployment and integrates with Supabase, Cloudflare Workers AI, and Groq for its backend and AI capabilities.
+The rate-limiting system protects the AI Portfolio Assistant from excessive chat requests by applying server-side usage checks to guest sessions, IP addresses, and authenticated users.
 
-Correct environment configuration and production verification are essential for reliable deployment.
+It helps control resource consumption while maintaining access for legitimate users.
